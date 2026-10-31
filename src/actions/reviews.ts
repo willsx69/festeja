@@ -1,7 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { getVerifiedCurrentUser, requireUser } from "@/lib/auth";
+import { getCurrentUserAllowedByEmailPolicy, requireUser } from "@/lib/auth";
 import {
   canReviewContract,
   createNotification,
@@ -28,7 +28,7 @@ export async function createReviewAction(
   _prevState: ReviewFormState,
   formData: FormData,
 ): Promise<ReviewFormState> {
-  const user = await getVerifiedCurrentUser();
+  const user = await getCurrentUserAllowedByEmailPolicy();
   if (!user || user.role !== "cliente") {
     return { errors: { geral: "Apenas contas de cliente podem avaliar." } };
   }
@@ -96,7 +96,7 @@ export async function replyReviewAction(
 }
 
 export async function reportReviewAction(formData: FormData): Promise<void> {
-  const user = await getVerifiedCurrentUser();
+  const user = await getCurrentUserAllowedByEmailPolicy();
   if (!user) return;
 
   if (!(await enforceRateLimit("review-report", user.id, 10, 24 * 60 * 60 * 1000)).allowed) {

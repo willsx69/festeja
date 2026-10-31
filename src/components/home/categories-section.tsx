@@ -1,7 +1,8 @@
-﻿import { Suspense } from "react";
+﻿import { Suspense, type CSSProperties } from "react";
 import { io } from "next/cache";
 import { ArrowRight } from "lucide-react";
 import { CategoryCard } from "@/components/category/category-card";
+import { ViewportReveal } from "@/components/motion/viewport-reveal";
 import { Container } from "@/components/ui/container";
 import { SectionHeader } from "@/components/ui/section-header";
 import { categories } from "@/data/categories";
@@ -26,13 +27,19 @@ async function CategoriesGrid() {
   const counts = countByCategory(await getAllProviders());
 
   return (
-    <ul className="mt-10 grid grid-cols-1 gap-x-5 gap-y-6 min-[480px]:grid-cols-2 lg:grid-cols-4">
-      {categories.map((category) => (
-        <li key={category.id}>
-          <CategoryCard category={category} count={counts[category.id] ?? 0} />
-        </li>
-      ))}
-    </ul>
+    <ViewportReveal>
+      <ul className="mt-10 grid grid-cols-1 gap-x-5 gap-y-6 min-[480px]:grid-cols-2 lg:grid-cols-4">
+        {categories.map((category, index) => (
+          <li
+            key={category.id}
+            className="reveal-item"
+            style={{ "--reveal-delay": `${index * 60}ms` } as CSSProperties}
+          >
+            <CategoryCard category={category} count={counts[category.id] ?? 0} />
+          </li>
+        ))}
+      </ul>
+    </ViewportReveal>
   );
 }
 

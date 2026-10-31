@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getVerifiedCurrentUser } from "@/lib/auth";
+import { getCurrentUserAllowedByEmailPolicy } from "@/lib/auth";
 import {
   getConversationForUser,
   listMessages,
@@ -12,7 +12,7 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const user = await getVerifiedCurrentUser();
+  const user = await getCurrentUserAllowedByEmailPolicy();
   if (!user || (user.role !== "cliente" && user.role !== "prestador")) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }

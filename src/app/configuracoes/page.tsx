@@ -12,6 +12,7 @@ import { Footer } from "@/components/layout/footer";
 import { Navbar } from "@/components/layout/navbar";
 import { requireAccountUser } from "@/lib/auth";
 import { getUserProfile } from "@/lib/db";
+import { isEmailVerificationRequired } from "@/lib/email-verification-policy";
 
 export const metadata: Metadata = {
   title: "Configurações",
@@ -65,6 +66,7 @@ async function ConfiguracoesData() {
                 <EmailVerification
                   email={profile.email}
                   verified={profile.emailVerified}
+                  required={isEmailVerificationRequired()}
                 />
               </div>
             </Card>

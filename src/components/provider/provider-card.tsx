@@ -42,7 +42,7 @@ export function ProviderCard({
       role="article"
       aria-labelledby={`provider-${provider.id}-title`}
       className={cn(
-        "group flex h-full flex-col overflow-hidden rounded-[18px] border-line/90 bg-surface transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-[3px] hover:border-brand/30 hover:shadow-[0_20px_44px_-30px_rgb(84_40_214_/_0.42)] focus-within:border-brand/30 focus-within:shadow-[0_20px_44px_-30px_rgb(84_40_214_/_0.42)] motion-reduce:transform-none motion-reduce:transition-none",
+        "group flex h-full flex-col overflow-hidden rounded-[18px] border-line/90 bg-surface transition-[translate,border-color,box-shadow] duration-200 hover:-translate-y-[3px] hover:border-brand/30 hover:shadow-[0_20px_44px_-30px_rgb(84_40_214_/_0.42)] focus-within:border-brand/30 focus-within:shadow-[0_20px_44px_-30px_rgb(84_40_214_/_0.42)] motion-reduce:translate-y-0 motion-reduce:transition-none",
         className,
       )}
     >
@@ -53,7 +53,7 @@ export function ProviderCard({
           image={provider.image}
           alt={categoryImageAlt[category.id]}
           className="aspect-[16/9] h-auto"
-          imageClassName="transition-transform duration-200 ease-out group-hover:scale-[1.03] group-focus-within:scale-[1.03] motion-reduce:transform-none motion-reduce:transition-none"
+          imageClassName="transition-[scale] duration-200 ease-out group-hover:scale-[1.02] group-focus-within:scale-[1.02] motion-reduce:scale-100 motion-reduce:transition-none"
         />
         <Badge
           tone="neutral"
@@ -162,7 +162,7 @@ export function ProviderCard({
             >
               Ver perfil
               <ArrowRight
-                className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-focus-within:translate-x-0.5 motion-reduce:transform-none motion-reduce:transition-none"
+                className="size-4 transition-[translate] duration-200 group-hover:translate-x-0.5 group-focus-within:translate-x-0.5 motion-reduce:translate-x-0 motion-reduce:transition-none"
                 aria-hidden="true"
               />
             </Link>

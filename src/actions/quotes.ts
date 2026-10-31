@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
-import { getVerifiedCurrentUser, requireUser } from "@/lib/auth";
+import { getCurrentUserAllowedByEmailPolicy, requireUser } from "@/lib/auth";
 import {
   createNotification,
   createQuote,
@@ -25,7 +25,7 @@ export async function createQuoteAction(
   _prevState: QuoteFormState,
   formData: FormData,
 ): Promise<QuoteFormState> {
-  const user = await getVerifiedCurrentUser();
+  const user = await getCurrentUserAllowedByEmailPolicy();
   if (!user) redirect("/entrar");
   if (user.role !== "cliente") {
     return { errors: { geral: "Apenas contas de cliente podem solicitar orçamentos." } };
@@ -162,7 +162,7 @@ export async function completeContractAction(formData: FormData): Promise<void> 
 }
 
 export async function cancelContractAction(formData: FormData): Promise<void> {
-  const user = await getVerifiedCurrentUser();
+  const user = await getCurrentUserAllowedByEmailPolicy();
   if (!user) return;
 
   const contractId = String(formData.get("id") ?? "");

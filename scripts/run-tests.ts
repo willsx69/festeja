@@ -21,6 +21,7 @@ const env: NodeJS.ProcessEnv = {
   FESTEJA_DB_PATH: path.join(tempDir, "festeja.db"),
   FESTEJA_UPLOADS_DIR: path.join(tempDir, "uploads"),
   FESTEJA_SEED: "1",
+  REQUIRE_EMAIL_VERIFICATION: "false",
 };
 
 let failed = false;

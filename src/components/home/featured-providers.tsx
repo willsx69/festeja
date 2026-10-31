@@ -1,5 +1,6 @@
-﻿import { Suspense } from "react";
+﻿import { Suspense, type CSSProperties } from "react";
 import { io } from "next/cache";
+import { ViewportReveal } from "@/components/motion/viewport-reveal";
 import { ProviderCard } from "@/components/provider/provider-card";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -32,11 +33,19 @@ async function FeaturedProvidersGrid() {
   const featured = await getFeaturedProviders();
 
   return (
-    <div className="mt-10 grid gap-5 sm:mt-12 sm:grid-cols-2 lg:grid-cols-3">
-      {featured.map((provider) => (
-        <ProviderCard key={provider.id} provider={provider} />
-      ))}
-    </div>
+    <ViewportReveal>
+      <div className="mt-10 grid gap-5 sm:mt-12 sm:grid-cols-2 lg:grid-cols-3">
+        {featured.map((provider, index) => (
+          <div
+            key={provider.id}
+            className="reveal-item h-full"
+            style={{ "--reveal-delay": `${index * 60}ms` } as CSSProperties}
+          >
+            <ProviderCard provider={provider} />
+          </div>
+        ))}
+      </div>
+    </ViewportReveal>
   );
 }
 

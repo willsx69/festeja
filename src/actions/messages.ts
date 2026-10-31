@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
-import { getVerifiedCurrentUser, requireUser } from "@/lib/auth";
+import { getCurrentUserAllowedByEmailPolicy, requireUser } from "@/lib/auth";
 import {
   createNotification,
   getConversationForUser,
@@ -22,7 +22,7 @@ export async function startConversationAction(
   _prevState: MessageFormState,
   formData: FormData,
 ): Promise<MessageFormState> {
-  const user = await getVerifiedCurrentUser();
+  const user = await getCurrentUserAllowedByEmailPolicy();
   if (!user) redirect("/entrar");
   if (user.role !== "cliente") {
     return { errors: { geral: "Apenas contas de cliente podem iniciar conversas." } };

@@ -11,9 +11,10 @@ import { Button } from "@/components/ui/button";
 type EmailVerificationProps = {
   email: string;
   verified: boolean;
+  required: boolean;
 };
 
-export function EmailVerification({ email, verified }: EmailVerificationProps) {
+export function EmailVerification({ email, verified, required }: EmailVerificationProps) {
   const [state, formAction, pending] = useActionState<VerificationState, FormData>(
     resendVerificationEmailAction,
     {},
@@ -35,10 +36,21 @@ export function EmailVerification({ email, verified }: EmailVerificationProps) {
       <div className="flex items-start gap-2">
         <MailWarning className="mt-0.5 size-4 shrink-0 text-ink" aria-hidden="true" />
         <div>
-          <p className="text-sm font-medium text-ink">Confirme seu e-mail</p>
+          <p className="text-sm font-medium text-ink">
+            {required ? "Confirme seu e-mail" : "E-mail ainda não verificado"}
+          </p>
           <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-            Verifique a caixa de entrada de <span className="font-medium">{email}</span>.
-            A confirmação protege sua conta e valida o endereço informado.
+            {required ? (
+              <>
+                Verifique a caixa de entrada de <span className="font-medium">{email}</span>.
+                A confirmação protege sua conta e valida o endereço informado.
+              </>
+            ) : (
+              <>
+                A confirmação de <span className="font-medium">{email}</span> está
+                temporariamente opcional e não limita o uso da sua conta.
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -57,11 +69,13 @@ export function EmailVerification({ email, verified }: EmailVerificationProps) {
         </p>
       ) : null}
 
-      <form action={formAction} className="mt-3">
-        <Button type="submit" variant="secondary" size="sm" disabled={pending}>
-          {pending ? "Enviando..." : "Reenviar confirmação"}
-        </Button>
-      </form>
+      {required ? (
+        <form action={formAction} className="mt-3">
+          <Button type="submit" variant="secondary" size="sm" disabled={pending}>
+            {pending ? "Enviando..." : "Reenviar confirmação"}
+          </Button>
+        </form>
+      ) : null}
     </div>
   );
 }

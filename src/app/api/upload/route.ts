@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { getVerifiedCurrentUser } from "@/lib/auth";
+import { getCurrentUserAllowedByEmailPolicy } from "@/lib/auth";
 import { enforceRateLimit, retryMessage } from "@/lib/rate-limit";
 import {
   MAX_UPLOAD_SIZE,
@@ -11,7 +11,7 @@ import {
 const MAX_REQUEST_SIZE = MAX_UPLOAD_SIZE + 256 * 1024;
 
 export async function POST(request: Request) {
-  const user = await getVerifiedCurrentUser();
+  const user = await getCurrentUserAllowedByEmailPolicy();
   if (!user) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }

@@ -57,8 +57,12 @@ function pgliteDataDir(): string | undefined {
 
 async function createPostgresDriver(url: string): Promise<DbDriver> {
   const pg = await import("pg");
+  const secureUrl = url.replace(
+    /([?&]sslmode=)(prefer|require|verify-ca)(?=&|$)/i,
+    "$1verify-full",
+  );
   const pool = new pg.Pool({
-    connectionString: url,
+    connectionString: secureUrl,
     max: Number(process.env.FESTEJA_DB_POOL_SIZE ?? 3),
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,

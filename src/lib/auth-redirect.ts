@@ -1,4 +1,5 @@
 import { getRoleHomePath } from "@/lib/roles";
+import { canUseAccount, isEmailVerificationRequired } from "@/lib/email-verification-policy";
 import type { UserRole } from "@/types";
 
 const APP_ORIGIN = "https://festeja.local";
@@ -7,6 +8,7 @@ const blockedAuthPaths = [
   "/cadastro",
   "/esqueci-senha",
   "/redefinir-senha",
+  "/verificar-email",
 ] as const;
 
 const restrictedRoots: { root: string; roles: UserRole[] }[] = [
@@ -55,6 +57,17 @@ export function getPostAuthPath(
   returnValue?: FormDataEntryValue | string | null,
 ): string {
   return getSafeReturnPath(returnValue, role) ?? getRoleHomePath(role);
+}
+
+export function getPostAuthDestination(
+  user: { role: UserRole; emailVerified: boolean },
+  returnValue?: FormDataEntryValue | string | null,
+  verificationRequired = isEmailVerificationRequired(),
+): string {
+  if (!canUseAccount(user.emailVerified, verificationRequired)) {
+    return "/verificar-email";
+  }
+  return getPostAuthPath(user.role, returnValue);
 }
 
 export function buildLoginHref(returnTo: string): string {

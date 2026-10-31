@@ -35,7 +35,7 @@ export function CategoryCard({ category, count }: { category: Category; count: n
     >
       <Card
         padded={false}
-        className="h-full overflow-hidden rounded-[1.25rem] transition-[transform,border-color,box-shadow] duration-[220ms] group-hover:-translate-y-[3px] group-hover:border-brand/35 group-hover:shadow-[0_18px_42px_-28px_rgb(84_40_214_/_0.45)] group-focus-visible:border-brand/35 motion-reduce:transform-none motion-reduce:transition-none"
+        className="h-full overflow-hidden rounded-[1.25rem] transition-[translate,border-color,box-shadow] duration-[220ms] group-hover:-translate-y-[3px] group-hover:border-brand/35 group-hover:shadow-[0_18px_42px_-28px_rgb(84_40_214_/_0.45)] group-focus-visible:border-brand/35 motion-reduce:translate-y-0 motion-reduce:transition-none"
       >
         <div className="relative aspect-video overflow-hidden bg-surface-muted">
           {image ? (
@@ -44,7 +44,7 @@ export function CategoryCard({ category, count }: { category: Category; count: n
               alt={categoryImageAlt[category.id] ?? `Serviço de ${category.name}`}
               fill
               sizes="(max-width: 479px) 100vw, (max-width: 1023px) 50vw, 25vw"
-              className="object-cover transition-transform duration-[220ms] group-hover:scale-[1.03] motion-reduce:transform-none motion-reduce:transition-none"
+              className="object-cover transition-[scale] duration-[220ms] group-hover:scale-[1.03] motion-reduce:scale-100 motion-reduce:transition-none"
             />
           ) : (
             <div
@@ -82,7 +82,7 @@ export function CategoryCard({ category, count }: { category: Category; count: n
               </span>
             </span>
             <ArrowUpRight
-              className="mb-1 size-5 shrink-0 text-ink-faint transition-[color,transform] duration-[220ms] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-brand motion-reduce:transform-none motion-reduce:transition-none"
+              className="mb-1 size-5 shrink-0 text-ink-faint transition-[color,translate] duration-[220ms] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-brand motion-reduce:translate-x-0 motion-reduce:translate-y-0 motion-reduce:transition-none"
               aria-hidden="true"
             />
           </span>

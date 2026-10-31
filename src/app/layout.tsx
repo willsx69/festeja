@@ -52,7 +52,15 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt-BR" className={plusJakarta.variable}>
-      <body className="min-h-dvh antialiased">{children}</body>
+      <body className="min-h-dvh antialiased">
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'if(location.pathname==="/"){document.documentElement.dataset.heroIntro="run";setTimeout(function(){if(document.documentElement.dataset.heroIntro==="run")document.documentElement.dataset.heroIntro="done"},1200)}',
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

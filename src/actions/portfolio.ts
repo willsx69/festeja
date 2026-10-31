@@ -1,7 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { getVerifiedCurrentUser, requireUser } from "@/lib/auth";
+import { getCurrentUserAllowedByEmailPolicy, requireUser } from "@/lib/auth";
 import {
   createPortfolioPost,
   deletePortfolioPost,
@@ -53,7 +53,7 @@ export async function deletePortfolioPostAction(formData: FormData): Promise<voi
 }
 
 export async function toggleLikeAction(postId: string): Promise<boolean | null> {
-  const user = await getVerifiedCurrentUser();
+  const user = await getCurrentUserAllowedByEmailPolicy();
   if (!user) return null;
 
   const liked = await togglePortfolioLike(postId, user.id);

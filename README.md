@@ -31,6 +31,7 @@ No PowerShell, use `Copy-Item .env.example .env.local`. Em outros shells, use
 | Variável | Padrão | Descrição |
 | --- | --- | --- |
 | `APP_URL` | `http://localhost:3000` | Base dos links de confirmação de e-mail e recuperação de senha. |
+| `REQUIRE_EMAIL_VERIFICATION` | `false` | `true` exige confirmação antes de liberar contas não verificadas. |
 | `DATABASE_URL` | vazio | PostgreSQL obrigatório na Vercel; use endpoint com pool para serverless. |
 | `FESTEJA_DB_PATH` | `./data/festeja.db` | Base do diretório PGlite usado no desenvolvimento e nos testes. |
 | `FESTEJA_SEED` | ativo fora de produção | `1`/`true` popula dados demo; `0`/`false` não popula. |
@@ -52,8 +53,14 @@ deixar a intenção explícita.
 ### E-mail transacional
 
 A confirmação de e-mail e a recuperação de senha usam a API da Resend. Sem
-`RESEND_API_KEY` e `EMAIL_FROM`, nenhum e-mail é enviado: as telas informam que o
-envio não está configurado e os tokens não são expostos ao navegador.
+`RESEND_API_KEY` e `EMAIL_FROM`, nenhum e-mail é enviado: os fluxos habilitados
+informam que o envio não está configurado e os tokens não são expostos ao navegador.
+
+Com `REQUIRE_EMAIL_VERIFICATION=false`, contas novas continuam registradas como
+não verificadas, mas podem usar a plataforma imediatamente. Ao alterar a variável
+para `true`, todas as contas ainda não verificadas, inclusive as criadas durante
+esse período, voltam a precisar de confirmação. O link pode ser solicitado em
+Configurações; senhas, sessões e autorização por papel não são afetadas pela flag.
 
 ### Uploads
 
@@ -76,6 +83,8 @@ npm run test:search  # busca e filtros
 npm run test:profile # perfis de prestador
 npm run test:auth    # validação de login e cadastro
 npm run test:security # rate limit, verificação de e-mail e exclusão de conta
+npm run migrate:sqlite # copia o SQLite para um PostgreSQL vazio
+npm run migrate:uploads # copia uploads locais para o Blob e atualiza URLs
 ```
 
 Os testes usam `FESTEJA_DB_PATH`, `FESTEJA_UPLOADS_DIR` e `FESTEJA_SEED=1`
@@ -156,3 +165,17 @@ backups.
 3. Configure `APP_URL`, `FESTEJA_SEED=0`, `RESEND_API_KEY` e `EMAIL_FROM`.
 4. Execute `npm run check`, `npm test` e `npm run build` antes de publicar.
 5. Faça primeiro um deployment de Preview e valide cadastro, e-mail, upload e mensagens.
+
+### Migração de uma instalação local
+
+Antes da migração, faça backups do SQLite e de `public/uploads`. A migração exige
+um PostgreSQL vazio, confere o backup por hash, copia os registros em uma única
+transação e não remove os dados locais:
+
+```powershell
+$env:DATABASE_URL="postgresql://..."
+$env:SQLITE_SOURCE_PATH="data/festeja.db"
+$env:SQLITE_BACKUP_PATH="data/backups/festeja-backup.db"
+npm run migrate:sqlite
+npm run migrate:uploads
+```

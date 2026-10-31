@@ -14,7 +14,9 @@
     "test:profile": "tsx scripts/run-tests.ts scripts/verify-profile.ts",
     "test": "tsx scripts/run-tests.ts",
     "test:auth": "tsx scripts/run-tests.ts scripts/verify-auth.ts",
-    "test:security": "tsx scripts/run-tests.ts scripts/verify-security.ts"
+    "test:security": "tsx scripts/run-tests.ts scripts/verify-security.ts",
+    "migrate:sqlite": "tsx scripts/migrate-sqlite-to-postgres.ts",
+    "migrate:uploads": "tsx scripts/migrate-uploads-to-blob.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.13",

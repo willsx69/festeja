@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 import {
   getCurrentUser,
-  getVerifiedCurrentUser,
+  getCurrentUserAllowedByEmailPolicy,
   getViewerKey,
   requireUser,
 } from "@/lib/auth";
@@ -39,7 +39,7 @@ export async function recordProfileViewAction(username: string): Promise<void> {
 }
 
 export async function toggleFavoriteAction(providerUsername: string): Promise<boolean | null> {
-  const user = await getVerifiedCurrentUser();
+  const user = await getCurrentUserAllowedByEmailPolicy();
   if (!user || user.role !== "cliente") return null;
 
   const providerUserId = await getProviderUserId(providerUsername);

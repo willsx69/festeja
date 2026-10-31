@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { endSession, startSession } from "@/lib/auth";
-import { getPostAuthPath } from "@/lib/auth-redirect";
+import { getPostAuthDestination } from "@/lib/auth-redirect";
 import { getSignupRole } from "@/lib/roles";
 import { categories } from "@/data/categories";
 import {
@@ -14,6 +14,7 @@ import {
   usernameExists,
 } from "@/lib/db";
 import { sendVerificationEmail } from "@/lib/email-verification";
+import { isEmailVerificationRequired } from "@/lib/email-verification-policy";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { enforceRequestRateLimit, resetRateLimit, retryMessage } from "@/lib/rate-limit";
 import {
@@ -68,8 +69,7 @@ export async function loginAction(
 
   await resetRateLimit(limit);
   await startSession(user);
-  if (!user.emailVerified) redirect("/verificar-email");
-  redirect(getPostAuthPath(user.role, formData.get("retorno")));
+  redirect(getPostAuthDestination(user, formData.get("retorno")));
 }
 
 export async function signupAction(
@@ -155,9 +155,14 @@ export async function signupAction(
     await updateProviderBusinessAddress(user.id, businessAddress || null);
   }
 
-  await sendVerificationEmail(user);
+  if (isEmailVerificationRequired()) await sendVerificationEmail(user);
   await startSession(user);
-  redirect("/verificar-email");
+  redirect(
+    getPostAuthDestination(
+      { role: user.role, emailVerified: false },
+      formData.get("retorno"),
+    ),
+  );
 }
 
 export async function logoutAction(): Promise<void> {

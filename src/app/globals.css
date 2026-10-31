@@ -91,22 +91,6 @@
     background-size: 40px 40px;
   }
 
-  .fade-up {
-    animation: fade-up 0.65s both cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  .fade-up-delay-1 {
-    animation-delay: 90ms;
-  }
-
-  .fade-up-delay-2 {
-    animation-delay: 180ms;
-  }
-
-  .fade-up-delay-3 {
-    animation-delay: 270ms;
-  }
-
   .festeja-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: var(--color-brand-ring) transparent;
@@ -131,14 +115,113 @@
     background-color: var(--color-brand);
   }
 
+  @media (prefers-reduced-motion: no-preference) {
+    [data-hero-intro="run"] .hero-rise {
+      animation: hero-rise 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .hero-rise-1 {
+      animation-delay: 80ms;
+    }
+
+    .hero-rise-2 {
+      animation-delay: 140ms;
+      animation-duration: 620ms;
+    }
+
+    .hero-rise-3 {
+      animation-delay: 240ms;
+      animation-duration: 520ms;
+    }
+
+    .hero-rise-4 {
+      animation-delay: 340ms;
+      animation-duration: 480ms;
+    }
+
+    .hero-rise-5 {
+      animation-delay: 440ms;
+      animation-duration: 420ms;
+    }
+
+    [data-hero-intro="run"] .hero-photo {
+      animation: hero-photo-in 680ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .hero-photo-a {
+      animation-delay: 180ms;
+    }
+
+    .hero-photo-b {
+      animation-delay: 300ms;
+    }
+
+    [data-hero-intro="run"] .hero-sticker {
+      animation: hero-sticker-in 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      transform-origin: center;
+    }
+
+    .hero-sticker-a {
+      animation-delay: 380ms;
+    }
+
+    .hero-sticker-b {
+      animation-delay: 460ms;
+    }
+
+    [data-hero-intro="run"] .hero-dot {
+      animation: hero-dot-in 460ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    .hero-dot-a {
+      animation-delay: 520ms;
+    }
+
+    .hero-dot-b {
+      animation-delay: 600ms;
+    }
+
+    [data-hero-intro="run"] .hero-underline {
+      transform-origin: left center;
+      animation: hero-underline-in 520ms cubic-bezier(0.16, 1, 0.3, 1) 380ms both;
+    }
+
+    [data-hero-intro="run"] body:has([data-landing-hero]) header a[aria-label="Festeja — início"] > span {
+      transform-origin: center;
+      animation: logo-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    [data-reveal="pending"] .reveal-item {
+      opacity: 0;
+      translate: 0 16px;
+    }
+
+    [data-reveal="pending"]:focus-within .reveal-item {
+      opacity: 1;
+      translate: 0 0;
+    }
+
+    [data-reveal="visible"] .reveal-item {
+      animation: reveal-item-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      animation-delay: var(--reveal-delay, 0ms);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
     *::after {
+      animation-delay: 0ms !important;
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
+    }
+
+    [data-reveal] .reveal-item {
+      opacity: 1 !important;
+      translate: 0 0 !important;
+      animation: none !important;
     }
   }
 }
@@ -153,13 +236,81 @@
   to { height: 0; }
 }
 
-@keyframes fade-up {
+@keyframes hero-rise {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    translate: 0 22px;
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    translate: 0 0;
+  }
+}
+
+@keyframes hero-photo-in {
+  from {
+    opacity: 0;
+    translate: 0 18px;
+    scale: 0.96;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+@keyframes hero-sticker-in {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+    scale: 0.94;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+@keyframes hero-dot-in {
+  from {
+    opacity: 0;
+    scale: 0.4;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes hero-underline-in {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+
+@keyframes logo-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes reveal-item-in {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
   }
 }

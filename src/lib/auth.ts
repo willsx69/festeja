@@ -4,6 +4,7 @@ import { createSession, deleteSession, getSessionUser } from "@/lib/db";
 import { buildLoginHref } from "@/lib/auth-redirect";
 import { randomToken, sha256 } from "@/lib/password";
 import { getRoleHomePath } from "@/lib/roles";
+import { canUseAccount } from "@/lib/email-verification-policy";
 import type { SessionUser, User, UserRole } from "@/types";
 
 export const SESSION_COOKIE = "festeja_session";
@@ -33,7 +34,7 @@ export async function getCurrentUserFromToken(
 export async function requireUser(roles?: UserRole[], returnTo?: string): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) redirect(returnTo ? buildLoginHref(returnTo) : "/entrar");
-  if (!user.emailVerified) redirect("/verificar-email");
+  if (!canUseAccount(user.emailVerified)) redirect("/verificar-email");
   if (roles && !roles.includes(user.role)) redirect(getRoleHomePath(user.role));
   return user;
 }
@@ -44,9 +45,9 @@ export async function requireAccountUser(): Promise<SessionUser> {
   return user;
 }
 
-export async function getVerifiedCurrentUser(): Promise<SessionUser | undefined> {
+export async function getCurrentUserAllowedByEmailPolicy(): Promise<SessionUser | undefined> {
   const user = await getCurrentUser();
-  return user?.emailVerified ? user : undefined;
+  return user && canUseAccount(user.emailVerified) ? user : undefined;
 }
 
 export async function startSession(user: User): Promise<void> {

@@ -1,7 +1,15 @@
 import { adminHeaderLinks, adminTabIds, parseAdminTab } from "@/lib/admin-navigation";
 import { getAccountNavigation } from "@/lib/account-navigation";
-import { getPostAuthPath, getSafeReturnPath } from "@/lib/auth-redirect";
+import {
+  getPostAuthDestination,
+  getPostAuthPath,
+  getSafeReturnPath,
+} from "@/lib/auth-redirect";
 import { closeDb, getProviderUserId } from "@/lib/db";
+import {
+  canUseAccount,
+  isEmailVerificationRequired,
+} from "@/lib/email-verification-policy";
 import { getRoleHomePath, getSignupRole } from "@/lib/roles";
 import { clientHeaderLinks, providerHeaderLinks } from "@/lib/role-navigation";
 
@@ -111,7 +119,38 @@ check(
 check(
   "rotas de autenticação não criam ciclos",
   getSafeReturnPath("/entrar?retorno=/cliente") === undefined &&
-    getSafeReturnPath("/cadastro") === undefined,
+    getSafeReturnPath("/cadastro") === undefined &&
+    getSafeReturnPath("/verificar-email?token=antigo") === undefined,
+);
+
+console.log("política de verificação de e-mail");
+check(
+  "verificação fica desativada por padrão e com false",
+  !isEmailVerificationRequired(undefined) && !isEmailVerificationRequired("false"),
+);
+check(
+  "verificação pode ser reativada explicitamente",
+  isEmailVerificationRequired("true"),
+);
+check(
+  "conta não verificada pode usar a plataforma quando a política está desativada",
+  canUseAccount(false, false),
+);
+check(
+  "reativação volta a bloquear conta ainda não verificada",
+  !canUseAccount(false, true) && canUseAccount(true, true),
+);
+check(
+  "cadastro e login sem verificação seguem para a área de cada papel",
+  getPostAuthDestination({ role: "cliente", emailVerified: false }, null, false) === "/cliente" &&
+    getPostAuthDestination({ role: "prestador", emailVerified: false }, null, false) === "/painel" &&
+    getPostAuthDestination({ role: "admin", emailVerified: false }, null, false) === "/admin",
+);
+check(
+  "política ativa encaminha somente contas não verificadas para confirmação",
+  getPostAuthDestination({ role: "cliente", emailVerified: false }, null, true) ===
+    "/verificar-email" &&
+    getPostAuthDestination({ role: "cliente", emailVerified: true }, null, true) === "/cliente",
 );
 
 console.log("perfil profissional");
