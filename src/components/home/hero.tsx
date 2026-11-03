@@ -49,10 +49,10 @@ export function Hero() {
 
         <div className="relative mx-auto hidden h-[37rem] w-full max-w-[34rem] lg:block" aria-label="Momentos de festas e eventos">
           <div className="hero-photo hero-photo-a absolute left-6 top-8 h-[25rem] w-[19rem] -rotate-3 overflow-hidden rounded-[2rem] border-[10px] border-white bg-white shadow-pop">
-            <Image src="/images/categorias/05-decoracao.png" alt="Decoração de festa em tons vibrantes" fill loading="lazy" sizes="304px" className="object-cover" />
+            <Image src="/images/landpage%20fotos/landpage%20primeira%20imagem.png" alt="Decoração de festa em tons vibrantes" fill loading="lazy" sizes="304px" className="object-cover" />
           </div>
           <div className="hero-photo hero-photo-b absolute bottom-10 right-0 h-[20rem] w-[17rem] rotate-4 overflow-hidden rounded-[2rem] border-[10px] border-white bg-white shadow-pop">
-            <Image src="/images/categorias/04-fotografia.png" alt="Fotografia profissional de evento" fill loading="lazy" sizes="272px" className="object-cover" />
+            <Image src="/images/landpage%20fotos/landpage%20segunda%20imagem.png" alt="Fotografia profissional de evento" fill loading="lazy" sizes="272px" className="object-cover" />
           </div>
 
           <div className="hero-sticker hero-sticker-a absolute right-2 top-2 rotate-3 rounded-2xl bg-yellow px-5 py-4 text-ink shadow-pop">
