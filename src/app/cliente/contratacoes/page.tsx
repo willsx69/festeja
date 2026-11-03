@@ -26,8 +26,9 @@ const statusMeta: Record<ContractStatus, { label: string; tone: "brand" | "pink"
 
 export default async function ClienteContratacoesPage() {
   const user = await requireUser(["cliente"], "/cliente/contratacoes");
-  const contracts = [...(await listContractsForClient(user.id))].reverse();
-  const reviewable = await listReviewableContractsForClient(user.id);
+  const contractData = await listContractsForClient(user.id);
+  const contracts = [...contractData].reverse();
+  const reviewable = await listReviewableContractsForClient(user.id, contractData);
 
   return (
     <Container className="py-8 sm:py-10">

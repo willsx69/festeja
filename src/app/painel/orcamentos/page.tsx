@@ -2,14 +2,14 @@ import { QuotesManager } from "@/components/painel/quotes-manager";
 import { PainelPageHeader } from "@/components/painel/painel-page-header";
 import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth";
-import { getProviderUserId, listQuotesForProvider } from "@/lib/db";
+import { getProviderProfileDetails, listQuotesForProvider } from "@/lib/db";
 
 export default async function PainelOrcamentosPage() {
   const user = await requireUser(["prestador"]);
-  const providerUserId = user.username
-    ? await getProviderUserId(user.username)
+  const details = user.username
+    ? await getProviderProfileDetails(user.username)
     : undefined;
-  const quotes = providerUserId ? await listQuotesForProvider(providerUserId) : [];
+  const quotes = details ? await listQuotesForProvider(details.userId) : [];
   const openQuotes = quotes.filter((quote) => quote.status === "aberto").length;
 
   return (

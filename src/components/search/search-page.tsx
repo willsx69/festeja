@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
+import { useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ChevronDown, ChevronLeft, ChevronRight, SlidersHorizontal, X } from "lucide-react";
 import { EmptyState } from "@/components/search/empty-state";
 import { SearchBar } from "@/components/search/search-bar";
 import { SearchFiltersPanel } from "@/components/search/search-filters";
@@ -14,17 +15,13 @@ import { cn } from "@/lib/utils";
 import {
   buildSearchHref,
   countActiveFilters,
-  countByCategory,
   defaultFilters,
-  listNeighborhoods,
-  parseSearchFilters,
   priceRanges,
   ratingOptions,
-  searchProviders,
   sortOptions,
   type SearchFilters,
 } from "@/lib/search";
-import type { Provider } from "@/types";
+import type { CategoryId, Provider } from "@/types";
 
 type Chip = {
   key: string;
@@ -34,21 +31,49 @@ type Chip = {
 
 type SearchPageProps = {
   providers: Provider[];
+  total: number;
+  page: number;
+  pageCount: number;
+  filters: SearchFilters;
+  counts: Record<CategoryId, number>;
+  neighborhoods: string[];
 };
 
-export function SearchPage({ providers }: SearchPageProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [showFilters, setShowFilters] = useState(false);
+function visiblePages(page: number, pageCount: number): (number | "ellipsis")[] {
+  if (pageCount <= 7) {
+    return Array.from({ length: pageCount }, (_, index) => index + 1);
+  }
 
-  const filters = useMemo(() => parseSearchFilters(searchParams), [searchParams]);
-  const counts = useMemo(() => countByCategory(providers), [providers]);
-  const neighborhoods = useMemo(() => listNeighborhoods(providers), [providers]);
-  const results = useMemo(() => searchProviders(providers, filters), [providers, filters]);
+  const pages: (number | "ellipsis")[] = [1];
+  const start = Math.max(2, page - 1);
+  const end = Math.min(pageCount - 1, page + 1);
+
+  if (start > 2) pages.push("ellipsis");
+  for (let value = start; value <= end; value++) pages.push(value);
+  if (end < pageCount - 1) pages.push("ellipsis");
+  pages.push(pageCount);
+
+  return pages;
+}
+
+export function SearchPage({
+  providers,
+  total,
+  page,
+  pageCount,
+  filters,
+  counts,
+  neighborhoods,
+}: SearchPageProps) {
+  const router = useRouter();
+  const [showFilters, setShowFilters] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const activeCount = countActiveFilters(filters);
 
-  function apply(next: SearchFilters) {
-    router.replace(buildSearchHref(next), { scroll: false });
+  function apply(next: SearchFilters, nextPage = 1) {
+    const href = buildSearchHref(next, nextPage);
+    if (href === buildSearchHref(filters, page)) return;
+    startTransition(() => router.push(href, { scroll: false }));
   }
 
   function update(patch: Partial<SearchFilters>) {
@@ -104,6 +129,8 @@ export function SearchPage({ providers }: SearchPageProps) {
     });
   }
 
+  const pages = visiblePages(page, pageCount);
+
   return (
     <>
       <section className="border-b border-line bg-canvas">
@@ -158,9 +185,9 @@ export function SearchPage({ providers }: SearchPageProps) {
                 className={cn(showFilters ? "mt-4 block" : "hidden", "lg:mt-0 lg:block")}
               >
                 <SearchFiltersPanel
-            filters={filters}
-            counts={counts}
-            neighborhoods={neighborhoods}
+                  filters={filters}
+                  counts={counts}
+                  neighborhoods={neighborhoods}
                   activeCount={activeCount}
                   onChange={update}
                   onClear={clearFilters}
@@ -171,11 +198,9 @@ export function SearchPage({ providers }: SearchPageProps) {
             <div className="mt-6 lg:mt-0">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <p role="status" aria-live="polite" className="text-sm text-ink-soft">
-                  <span className="font-semibold text-ink">
-                    {formatCount(results.length)}
-                  </span>{" "}
-                  {results.length === 1 ? "prestador" : "prestadores"}
-                  {results.length === 1 ? " encontrado" : " encontrados"}
+                  <span className="font-semibold text-ink">{formatCount(total)}</span>{" "}
+                  {total === 1 ? "prestador" : "prestadores"}
+                  {total === 1 ? " encontrado" : " encontrados"}
                 </p>
 
                 <label className="flex items-center gap-2 text-sm text-ink-soft">
@@ -214,17 +239,92 @@ export function SearchPage({ providers }: SearchPageProps) {
                 </ul>
               ) : null}
 
-              {results.length > 0 ? (
-                <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                  {results.map((provider) => (
-                    <ProviderCard key={provider.id} provider={provider} />
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-6">
-                  <EmptyState hasFilters={activeCount > 0} onClear={clearFilters} />
-                </div>
-              )}
+              <div
+                id="resultados"
+                aria-busy={isPending}
+                className={cn("transition-opacity", isPending && "opacity-60")}
+              >
+                {providers.length > 0 ? (
+                  <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                    {providers.map((provider) => (
+                      <ProviderCard key={provider.id} provider={provider} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-6">
+                    <EmptyState hasFilters={activeCount > 0} onClear={clearFilters} />
+                  </div>
+                )}
+              </div>
+
+              {pageCount > 1 ? (
+                <nav
+                  aria-label="Paginação"
+                  className="mt-8 flex flex-wrap items-center justify-center gap-2"
+                >
+                  {page > 1 ? (
+                    <Link
+                      href={buildSearchHref(filters, page - 1)}
+                      prefetch={false}
+                      aria-label="Página anterior"
+                      className="inline-flex size-9 items-center justify-center rounded-xl border border-line-strong text-ink-soft transition-colors hover:border-brand/50 hover:text-brand"
+                    >
+                      <ChevronLeft className="size-4" aria-hidden="true" />
+                    </Link>
+                  ) : (
+                    <span
+                      aria-disabled="true"
+                      className="inline-flex size-9 items-center justify-center rounded-xl border border-line text-ink-faint/50"
+                    >
+                      <ChevronLeft className="size-4" aria-hidden="true" />
+                    </span>
+                  )}
+
+                  {pages.map((item, index) =>
+                    item === "ellipsis" ? (
+                      <span key={`ellipsis-${index}`} className="px-1 text-sm text-ink-faint">
+                        …
+                      </span>
+                    ) : item === page ? (
+                      <span
+                        key={item}
+                        aria-current="page"
+                        className="inline-flex size-9 items-center justify-center rounded-xl bg-brand text-sm font-bold text-white"
+                      >
+                        {item}
+                      </span>
+                    ) : (
+                      <Link
+                        key={item}
+                        href={buildSearchHref(filters, item)}
+                        prefetch={false}
+                        aria-label={`Página ${item}`}
+                        className="inline-flex size-9 items-center justify-center rounded-xl border border-line-strong text-sm font-medium text-ink-soft transition-colors hover:border-brand/50 hover:text-brand"
+                      >
+                        {item}
+                      </Link>
+                    ),
+                  )}
+
+                  {page < pageCount ? (
+                    <Link
+                      href={buildSearchHref(filters, page + 1)}
+                      prefetch={false}
+                      aria-label="Próxima página"
+                      className="inline-flex size-9 items-center justify-center rounded-xl border border-line-strong text-ink-soft transition-colors hover:border-brand/50 hover:text-brand"
+                    >
+                      <ChevronRight className="size-4" aria-hidden="true" />
+                    </Link>
+                  ) : (
+                    <span
+                      aria-disabled="true"
+                      className="inline-flex size-9 items-center justify-center rounded-xl border border-line text-ink-faint/50"
+                    >
+                      <ChevronRight className="size-4" aria-hidden="true" />
+                    </span>
+                  )}
+                </nav>
+              ) : null}
             </div>
           </div>
         </Container>

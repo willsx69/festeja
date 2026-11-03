@@ -30,6 +30,8 @@ export const sortOptions = [
 
 export type SortId = (typeof sortOptions)[number]["id"];
 
+export const SEARCH_PAGE_SIZE = 9;
+
 export type SearchFilters = {
   query: string;
   location: string;
@@ -189,7 +191,30 @@ export function parseSearchFilters(params: URLSearchParams): SearchFilters {
   };
 }
 
-export function buildSearchHref(filters: SearchFilters): string {
+export function parseSearchFiltersFromRecord(
+  record: Record<string, string | string[] | undefined>,
+): SearchFilters {
+  const params = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(record)) {
+    const first = Array.isArray(value) ? value[0] : value;
+    if (first !== undefined) params.set(key, first);
+  }
+
+  return parseSearchFilters(params);
+}
+
+export function normalizeSearchPage(
+  value: string | string[] | undefined,
+  pageCount: number,
+): number {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const parsed = Number.parseInt(raw ?? "1", 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return 1;
+  return Math.min(parsed, pageCount);
+}
+
+export function buildSearchHref(filters: SearchFilters, page = 1): string {
   const params = new URLSearchParams();
 
   if (filters.query) params.set("q", filters.query);
@@ -198,6 +223,7 @@ export function buildSearchHref(filters: SearchFilters): string {
   if (filters.priceRange !== "any") params.set("preco", filters.priceRange);
   if (filters.rating !== "any") params.set("avaliacao", filters.rating);
   if (filters.sort !== "relevance") params.set("ordem", filters.sort);
+  if (page > 1) params.set("pagina", String(page));
 
   const query = params.toString();
   return query ? `/buscar?${query}` : "/buscar";

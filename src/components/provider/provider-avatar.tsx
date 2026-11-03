@@ -1,4 +1,8 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { initialsFrom } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -6,6 +10,12 @@ const sizes = {
   md: "size-14 text-sm",
   lg: "size-16 text-base",
   xl: "size-20 text-xl sm:size-24 sm:text-2xl",
+} as const;
+
+const imageSizes = {
+  md: "56px",
+  lg: "64px",
+  xl: "(min-width: 640px) 96px, 72px",
 } as const;
 
 type ProviderAvatarProps = {
@@ -27,6 +37,9 @@ export function ProviderAvatar({
   className,
   fallbackClassName,
 }: ProviderAvatarProps) {
+  const [failedImage, setFailedImage] = useState<string | null>(null);
+  const showImage = Boolean(image) && failedImage !== image;
+
   return (
     <Avatar
       title={title}
@@ -36,22 +49,22 @@ export function ProviderAvatar({
         className,
       )}
     >
-      {image ? (
-        <AvatarImage
-          src={image}
-          alt={imageAlt ?? `Imagem de perfil de ${name}`}
-          width={96}
-          height={96}
-          loading="lazy"
-          decoding="async"
-        />
-      ) : null}
       <AvatarFallback
         aria-hidden="true"
         className={cn("bg-brand-soft font-semibold text-brand-strong", fallbackClassName)}
       >
         {initialsFrom(name)}
       </AvatarFallback>
+      {showImage && image ? (
+        <Image
+          src={image}
+          alt={imageAlt ?? `Imagem de perfil de ${name}`}
+          fill
+          sizes={imageSizes[size]}
+          className="object-cover"
+          onError={() => setFailedImage(image)}
+        />
+      ) : null}
     </Avatar>
   );
 }

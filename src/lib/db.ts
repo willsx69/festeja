@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
+import { cache } from "react";
 import {
   availabilityByCategory,
   seedProfiles,
@@ -260,6 +261,8 @@ CREATE INDEX IF NOT EXISTS idx_quotes_provider ON quote_requests(provider_user_i
 CREATE INDEX IF NOT EXISTS idx_contracts_provider ON contracts(provider_user_id);
 CREATE INDEX IF NOT EXISTS idx_contracts_client ON contracts(client_user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation_created ON messages(conversation_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_messages_unread ON messages(conversation_id, read_at, sender_user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_client ON conversations(client_user_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_provider ON conversations(provider_user_id);
@@ -843,45 +846,50 @@ type ProfileRow = {
   views: number;
 };
 
-type RatingRow = { username: string; total: number; average: number };
+type ProviderRow = ProfileRow & {
+  name: string;
+  avatar: string | null;
+  rating_total?: number | null;
+  rating_average?: number | null;
+};
 
-async function ratingMap(): Promise<Map<string, { rating: number; reviews: number }>> {
-  const data = await rows<RatingRow>(
-    `SELECT p.username AS username,
-            COUNT(r.id) AS total,
-            COALESCE(AVG(r.rating), 0) AS average
+type ProfileDetailsRow = ProviderRow & { email: string };
+
+const providerRatingJoin = `
+     LEFT JOIN (
+       SELECT provider_user_id,
+              COUNT(*) AS total,
+              AVG(rating) AS average
+       FROM reviews
+       WHERE hidden = 0
+       GROUP BY provider_user_id
+     ) rating_stats ON rating_stats.provider_user_id = p.user_id`;
+
+const profileRowSelect = `
+     SELECT p.*, u.name AS name, u.email AS email, u.avatar AS avatar,
+            COALESCE(rating_stats.total, 0) AS rating_total,
+            COALESCE(rating_stats.average, 0) AS rating_average
      FROM provider_profiles p
-     LEFT JOIN reviews r ON r.provider_user_id = p.user_id AND r.hidden = 0
-     GROUP BY p.user_id`,
-  );
+     JOIN users u ON u.id = p.user_id
+     ${providerRatingJoin}
+     WHERE p.username = ?`;
 
-  return new Map(
-    data.map((rating) => [
-      rating.username,
-      {
-        rating: Math.round(Number(rating.average) * 100) / 100,
-        reviews: Number(rating.total),
-      },
-    ]),
-  );
-}
+const getProfileRow = cache(async (username: string) => {
+  return row<ProfileDetailsRow>(profileRowSelect, [username]);
+});
 
-function toProvider(
-  row: ProfileRow,
-  ratings: Map<string, { rating: number; reviews: number }>,
-) {
-  const stats = ratings.get(row.username) ?? { rating: 0, reviews: 0 };
+function toProvider(row: ProviderRow): Provider {
   return {
     id: row.username,
-    name: "",
+    name: row.name,
     category: row.category as CategoryId,
     image: row.image ?? undefined,
     avatar: row.avatar ?? undefined,
     city: row.city,
     state: row.state,
     neighborhood: row.neighborhood,
-    rating: stats.rating,
-    reviews: stats.reviews,
+    rating: Math.round(Number(row.rating_average ?? 0) * 100) / 100,
+    reviews: Number(row.rating_total ?? 0),
     price: row.price_from,
     priceUnit: row.price_unit ?? undefined,
     tags: parseTags(row.tags),
@@ -891,15 +899,17 @@ function toProvider(
 }
 
 export async function getAllProviders(): Promise<Provider[]> {
-  const ratings = await ratingMap();
-  const data = await rows<ProfileRow & { name: string }>(
-    `SELECT p.*, u.name AS name, u.avatar AS avatar
+  const data = await rows<ProviderRow>(
+    `SELECT p.*, u.name AS name, u.avatar AS avatar,
+            COALESCE(rating_stats.total, 0) AS rating_total,
+            COALESCE(rating_stats.average, 0) AS rating_average
      FROM provider_profiles p
      JOIN users u ON u.id = p.user_id
+     ${providerRatingJoin}
      ORDER BY p.position`,
   );
 
-  return data.map((provider) => ({ ...toProvider(provider, ratings), name: provider.name }));
+  return data.map(toProvider);
 }
 
 export async function getFeaturedProviders(): Promise<Provider[]> {
@@ -909,7 +919,8 @@ export async function getFeaturedProviders(): Promise<Provider[]> {
 export async function getProviderByUsername(
   username: string,
 ): Promise<Provider | undefined> {
-  return (await getAllProviders()).find((provider) => provider.id === username);
+  const data = await getProfileRow(username);
+  return data ? toProvider(data) : undefined;
 }
 
 export async function getProfileUsernames(): Promise<string[]> {
@@ -922,77 +933,14 @@ export async function getProfileUsernames(): Promise<string[]> {
 export async function getProviderProfile(
   username: string,
 ): Promise<ProviderProfile | undefined> {
-  const profile = await row<ProfileRow & { name: string }>(
-    `SELECT p.*, u.name AS name
-     FROM provider_profiles p
-     JOIN users u ON u.id = p.user_id
-     WHERE p.username = ?`,
-    [username],
-  );
+  const profile = await getProfileRow(username);
   if (!profile) return undefined;
 
-  const serviceRows = await rows<{
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    price_unit: string | null;
-  }>(
-    "SELECT id, name, description, price, price_unit FROM services WHERE provider_user_id = ? ORDER BY position",
-    [profile.user_id],
-  );
-
-  const postRows = await rows<{
-    id: string;
-    title: string;
-    meta: string;
-    image: string | null;
-  }>(
-    "SELECT id, title, meta, image FROM portfolio_posts WHERE provider_user_id = ? ORDER BY position, created_at",
-    [profile.user_id],
-  );
-
-  const reviewRows = await rows<{
-    id: string;
-    author: string;
-    event: string;
-    date: string;
-    rating: number;
-    comment: string;
-    reply: string | null;
-  }>(
-    `SELECT r.id, r.author_name AS author, r.event, r.event_date AS date, r.rating, r.comment, rr.body AS reply
-     FROM reviews r
-     LEFT JOIN review_replies rr ON rr.review_id = r.id
-     WHERE r.provider_user_id = ? AND r.hidden = 0
-     ORDER BY r.seq`,
-    [profile.user_id],
-  );
-
-  const services: ProviderService[] = serviceRows.map((service) => ({
-    id: service.id,
-    name: service.name,
-    description: service.description,
-    price: service.price,
-    priceUnit: service.price_unit ?? undefined,
-  }));
-
-  const portfolio: PortfolioItem[] = postRows.map((post) => ({
-    id: post.id,
-    title: post.title,
-    meta: post.meta,
-    image: post.image ?? undefined,
-  }));
-
-  const reviews: ProviderReview[] = reviewRows.map((review) => ({
-    id: review.id,
-    author: review.author,
-    event: review.event,
-    date: review.date,
-    rating: review.rating,
-    comment: review.comment,
-    reply: review.reply ?? undefined,
-  }));
+  const [services, portfolio, reviews] = await Promise.all([
+    listServicesForProvider(profile.user_id),
+    listPortfolio(profile.user_id),
+    listReviewsForProvider(profile.user_id),
+  ]);
 
   return {
     id: profile.username,
@@ -1259,13 +1207,7 @@ export type ProviderProfileDetails = {
 export async function getProviderProfileDetails(
   username: string,
 ): Promise<ProviderProfileDetails | undefined> {
-  const data = await row<ProfileRow & { name: string; email: string; avatar: string | null }>(
-    `SELECT p.*, u.name AS name, u.email AS email, u.avatar AS avatar
-     FROM provider_profiles p
-     JOIN users u ON u.id = p.user_id
-     WHERE p.username = ?`,
-    [username],
-  );
+  const data = await getProfileRow(username);
   if (!data) return undefined;
 
   return {
@@ -1293,9 +1235,9 @@ export async function getProviderProfileDetails(
   };
 }
 
-export async function listServices(username: string): Promise<ProviderService[]> {
-  const userId = await getProviderUserId(username);
-  if (!userId) return [];
+export async function listServicesForProvider(
+  providerUserId: string,
+): Promise<ProviderService[]> {
   const data = await rows<{
     id: string;
     name: string;
@@ -1304,7 +1246,7 @@ export async function listServices(username: string): Promise<ProviderService[]>
     price_unit: string | null;
   }>(
     "SELECT id, name, description, price, price_unit FROM services WHERE provider_user_id = ? ORDER BY position",
-    [userId],
+    [providerUserId],
   );
   return data.map((service) => ({
     id: service.id,
@@ -1313,6 +1255,11 @@ export async function listServices(username: string): Promise<ProviderService[]>
     price: service.price,
     priceUnit: service.price_unit ?? undefined,
   }));
+}
+
+export async function listServices(username: string): Promise<ProviderService[]> {
+  const userId = await getProviderUserId(username);
+  return userId ? listServicesForProvider(userId) : [];
 }
 
 export async function createService(
@@ -1519,17 +1466,19 @@ export async function toggleFavorite(
 }
 
 export async function listFavorites(userId: string): Promise<Provider[]> {
-  const ratings = await ratingMap();
-  const data = await rows<ProfileRow & { name: string }>(
-    `SELECT p.*, u.name AS name, u.avatar AS avatar
+  const data = await rows<ProviderRow>(
+    `SELECT p.*, u.name AS name, u.avatar AS avatar,
+            COALESCE(rating_stats.total, 0) AS rating_total,
+            COALESCE(rating_stats.average, 0) AS rating_average
      FROM favorites f
      JOIN provider_profiles p ON p.user_id = f.provider_user_id
      JOIN users u ON u.id = p.user_id
+     ${providerRatingJoin}
      WHERE f.user_id = ?
      ORDER BY f.created_at`,
     [userId],
   );
-  return data.map((provider) => ({ ...toProvider(provider, ratings), name: provider.name }));
+  return data.map(toProvider);
 }
 
 export async function countFavorites(providerUserId: string): Promise<number> {
@@ -1573,24 +1522,34 @@ export async function getProviderStats(providerUserId: string): Promise<{
   contractsConcluded: number;
   positivePercent: number;
 }> {
-  const reviewRow = await row<{ total: number; average: number; positive: number }>(
-    "SELECT COUNT(*) AS total, COALESCE(AVG(rating), 0) AS average, COALESCE(SUM(CASE WHEN rating >= 4 THEN 1 ELSE 0 END), 0) AS positive FROM reviews WHERE provider_user_id = ? AND hidden = 0",
-    [providerUserId],
-  );
-  const contracts = await row<{ total: number }>(
-    "SELECT COUNT(*) AS total FROM contracts WHERE provider_user_id = ? AND status = 'concluido'",
+  const stats = await row<{
+    views: number;
+    favorites: number;
+    total: number;
+    average: number;
+    positive: number;
+    contracts_concluded: number;
+  }>(
+    `SELECT p.views,
+            (SELECT COUNT(*) FROM favorites f WHERE f.provider_user_id = p.user_id) AS favorites,
+            (SELECT COUNT(*) FROM reviews r WHERE r.provider_user_id = p.user_id AND r.hidden = 0) AS total,
+            (SELECT COALESCE(AVG(r.rating), 0) FROM reviews r WHERE r.provider_user_id = p.user_id AND r.hidden = 0) AS average,
+            (SELECT COALESCE(SUM(CASE WHEN r.rating >= 4 THEN 1 ELSE 0 END), 0) FROM reviews r WHERE r.provider_user_id = p.user_id AND r.hidden = 0) AS positive,
+            (SELECT COUNT(*) FROM contracts c WHERE c.provider_user_id = p.user_id AND c.status = 'concluido') AS contracts_concluded
+     FROM provider_profiles p
+     WHERE p.user_id = ?`,
     [providerUserId],
   );
 
-  const total = Number(reviewRow?.total ?? 0);
-  const positive = Number(reviewRow?.positive ?? 0);
+  const total = Number(stats?.total ?? 0);
+  const positive = Number(stats?.positive ?? 0);
 
   return {
-    views: await getProfileViews(providerUserId),
-    favorites: await countFavorites(providerUserId),
+    views: Number(stats?.views ?? 0),
+    favorites: Number(stats?.favorites ?? 0),
     reviews: total,
-    rating: Math.round(Number(reviewRow?.average ?? 0) * 100) / 100,
-    contractsConcluded: Number(contracts?.total ?? 0),
+    rating: Math.round(Number(stats?.average ?? 0) * 100) / 100,
+    contractsConcluded: Number(stats?.contracts_concluded ?? 0),
     positivePercent: total === 0 ? 0 : Math.round((positive / total) * 100),
   };
 }
@@ -2180,19 +2139,63 @@ export async function canReviewContractSimple(
   return { ok: true };
 }
 
+export async function listReviewsForProvider(
+  providerUserId: string,
+): Promise<ProviderReview[]> {
+  const data = await rows<{
+    id: string;
+    author: string;
+    event: string;
+    date: string;
+    rating: number;
+    comment: string;
+    reply: string | null;
+  }>(
+    `SELECT r.id, r.author_name AS author, r.event, r.event_date AS date, r.rating, r.comment, rr.body AS reply
+     FROM reviews r
+     LEFT JOIN review_replies rr ON rr.review_id = r.id
+     WHERE r.provider_user_id = ? AND r.hidden = 0
+     ORDER BY r.seq`,
+    [providerUserId],
+  );
+
+  return data.map((review) => ({
+    id: review.id,
+    author: review.author,
+    event: review.event,
+    date: review.date,
+    rating: review.rating,
+    comment: review.comment,
+    reply: review.reply ?? undefined,
+  }));
+}
+
 export async function listReviewableContractsForClient(
   clientUserId: string,
+  contracts?: Contract[],
 ): Promise<Contract[]> {
-  const data = await rows<{ id: string }>(
-    `SELECT c.id
-     FROM contracts c
-     WHERE c.client_user_id = ? AND c.status = 'concluido'
-       AND NOT EXISTS (SELECT 1 FROM reviews r WHERE r.contract_id = c.id)`,
+  if (contracts) {
+    const completed = contracts.filter((contract) => contract.status === "concluido");
+    if (completed.length === 0) return [];
+
+    const placeholders = completed.map(() => "?").join(", ");
+    const reviewed = await rows<{ contract_id: string }>(
+      `SELECT contract_id FROM reviews WHERE contract_id IN (${placeholders})`,
+      completed.map((contract) => contract.id),
+    );
+    const reviewedIds = new Set(reviewed.map((review) => review.contract_id));
+    return completed.filter((contract) => !reviewedIds.has(contract.id));
+  }
+
+  const data = await rows<ContractRow>(
+    `${CONTRACT_SELECT}
+     WHERE c.client_user_id = ?
+       AND c.status = 'concluido'
+       AND NOT EXISTS (SELECT 1 FROM reviews r WHERE r.contract_id = c.id)
+     ORDER BY c.created_at`,
     [clientUserId],
   );
-  const all = await listContractsForClient(clientUserId);
-  const ids = new Set(data.map((contract) => contract.id));
-  return all.filter((contract) => ids.has(contract.id));
+  return data.map(toContract);
 }
 
 export async function listReviewsByClient(clientUserId: string): Promise<
@@ -2461,46 +2464,48 @@ export async function getOrCreateConversation(
   return data.id;
 }
 
-export async function getConversationForUser(
-  conversationId: string,
-  userId: string,
-): Promise<Conversation | undefined> {
-  const conversations = await listConversationsForUser(userId);
-  return conversations.find((conversation) => conversation.id === conversationId);
-}
+type ConversationRow = {
+  id: string;
+  client_user_id: string;
+  provider_user_id: string;
+  created_at: string;
+  client_name: string;
+  provider_name: string;
+  provider_username: string;
+  last_message: string | null;
+  last_message_at: string | null;
+  last_sender_user_id: string | null;
+  unread_count: number;
+};
 
-export async function listConversationsForUser(
-  userId: string,
-): Promise<Conversation[]> {
-  const data = await rows<{
-    id: string;
-    client_user_id: string;
-    provider_user_id: string;
-    created_at: string;
-    client_name: string;
-    provider_name: string;
-    provider_username: string;
-    last_message: string | null;
-    last_message_at: string | null;
-    last_sender_user_id: string | null;
-    unread_count: number;
-  }>(
-    `SELECT c.id, c.client_user_id, c.provider_user_id, c.created_at,
+const conversationSelect = `
+     SELECT c.id, c.client_user_id, c.provider_user_id, c.created_at,
             cu.name AS client_name, pu.name AS provider_name, p.username AS provider_username,
-            (SELECT m.body FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1) AS last_message,
-            (SELECT m.created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1) AS last_message_at,
-            (SELECT m.sender_user_id FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1) AS last_sender_user_id,
-            (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id AND m.sender_user_id != ? AND m.read_at IS NULL) AS unread_count
+            lm.body AS last_message,
+            lm.created_at AS last_message_at,
+            lm.sender_user_id AS last_sender_user_id,
+            COALESCE(unread.unread_count, 0) AS unread_count
      FROM conversations c
      JOIN users cu ON cu.id = c.client_user_id
      JOIN users pu ON pu.id = c.provider_user_id
      JOIN provider_profiles p ON p.user_id = c.provider_user_id
-     WHERE c.client_user_id = ? OR c.provider_user_id = ?
-     ORDER BY COALESCE(last_message_at, c.created_at) DESC`,
-    [userId, userId, userId],
-  );
+     LEFT JOIN LATERAL (
+       SELECT m.body, m.created_at, m.sender_user_id
+       FROM messages m
+       WHERE m.conversation_id = c.id
+       ORDER BY m.created_at DESC
+       LIMIT 1
+     ) lm ON TRUE
+     LEFT JOIN LATERAL (
+       SELECT COUNT(*) AS unread_count
+       FROM messages m
+       WHERE m.conversation_id = c.id
+         AND m.sender_user_id != ?
+         AND m.read_at IS NULL
+     ) unread ON TRUE`;
 
-  return data.map((conversation) => ({
+function toConversation(conversation: ConversationRow): Conversation {
+  return {
     id: conversation.id,
     clientUserId: conversation.client_user_id,
     clientName: conversation.client_name,
@@ -2512,7 +2517,32 @@ export async function listConversationsForUser(
     lastSenderUserId: conversation.last_sender_user_id ?? undefined,
     unreadCount: Number(conversation.unread_count),
     createdAt: conversation.created_at,
-  }));
+  };
+}
+
+export async function getConversationForUser(
+  conversationId: string,
+  userId: string,
+): Promise<Conversation | undefined> {
+  const conversation = await row<ConversationRow>(
+    `${conversationSelect}
+     WHERE c.id = ? AND (c.client_user_id = ? OR c.provider_user_id = ?)`,
+    [userId, conversationId, userId, userId],
+  );
+  return conversation ? toConversation(conversation) : undefined;
+}
+
+export async function listConversationsForUser(
+  userId: string,
+): Promise<Conversation[]> {
+  const data = await rows<ConversationRow>(
+    `${conversationSelect}
+     WHERE c.client_user_id = ? OR c.provider_user_id = ?
+     ORDER BY COALESCE(lm.created_at, c.created_at) DESC`,
+    [userId, userId, userId],
+  );
+
+  return data.map(toConversation);
 }
 
 export async function listMessages(conversationId: string): Promise<Message[]> {

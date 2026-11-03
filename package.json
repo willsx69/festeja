@@ -5,7 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/server.ps1 start",
+    "start:next": "next start",
+    "server:status": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/server.ps1 status",
+    "server:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/server.ps1 stop",
+    "server:restart": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/server.ps1 restart",
+    "server:restart:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/server.ps1 restart -Build",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run lint",

@@ -43,11 +43,15 @@ const contractLabels = {
 
 export default async function ClientePage() {
   const user = await requireUser(["cliente"], "/cliente");
-  const quotes = [...(await listQuotesForClient(user.id))].reverse();
-  const contracts = [...(await listContractsForClient(user.id))].reverse();
-  const favorites = await listFavorites(user.id);
-  const reviewable = await listReviewableContractsForClient(user.id);
-  const conversations = await listConversationsForUser(user.id);
+  const [quotesData, contractsData, favorites, conversations] = await Promise.all([
+    listQuotesForClient(user.id),
+    listContractsForClient(user.id),
+    listFavorites(user.id),
+    listConversationsForUser(user.id),
+  ]);
+  const quotes = [...quotesData].reverse();
+  const contracts = [...contractsData].reverse();
+  const reviewable = await listReviewableContractsForClient(user.id, contractsData);
   const unreadMessages = conversations.reduce((total, item) => total + item.unreadCount, 0);
   const firstName = user.name.trim().split(/\s+/)[0] || user.name;
   const recentQuote = quotes[0];

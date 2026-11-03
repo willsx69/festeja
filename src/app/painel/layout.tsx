@@ -6,7 +6,7 @@ import { PainelNav } from "@/components/painel/painel-nav";
 import { Container } from "@/components/ui/container";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUser } from "@/lib/auth";
-import { getProviderProfileDetails, getProviderUserId } from "@/lib/db";
+import { getProviderProfileDetails } from "@/lib/db";
 
 function PainelFallback() {
   return (
@@ -30,11 +30,10 @@ function PainelFallback() {
 
 async function PainelShell({ children }: { children: ReactNode }) {
   const user = await requireUser(["prestador"]);
-  const profileUsername =
-    user.username && (await getProviderUserId(user.username)) ? user.username : undefined;
-  const details = profileUsername
-    ? await getProviderProfileDetails(profileUsername)
+  const details = user.username
+    ? await getProviderProfileDetails(user.username)
     : undefined;
+  const profileUsername = details?.username;
 
   return (
     <div className="flex min-h-dvh flex-col">

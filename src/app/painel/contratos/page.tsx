@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth";
-import { getProviderUserId, listContractsForProvider } from "@/lib/db";
+import { getProviderProfileDetails, listContractsForProvider } from "@/lib/db";
 import { formatBRL, formatShortDate } from "@/lib/format";
 import type { ContractStatus } from "@/types";
 
@@ -18,11 +18,11 @@ const statusMeta: Record<ContractStatus, { label: string; tone: "brand" | "pink"
 
 export default async function PainelContratosPage() {
   const user = await requireUser(["prestador"]);
-  const providerUserId = user.username
-    ? await getProviderUserId(user.username)
+  const details = user.username
+    ? await getProviderProfileDetails(user.username)
     : undefined;
-  const contracts = providerUserId
-    ? [...(await listContractsForProvider(providerUserId))].reverse()
+  const contracts = details
+    ? [...(await listContractsForProvider(details.userId))].reverse()
     : [];
 
   return (

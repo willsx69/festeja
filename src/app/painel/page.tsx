@@ -33,11 +33,10 @@ import { requireUser } from "@/lib/auth";
 import {
   getProviderProfileDetails,
   getProviderStats,
-  getProviderUserId,
   listNotifications,
   listPortfolio,
   listQuotesForProvider,
-  listServices,
+  listServicesForProvider,
 } from "@/lib/db";
 import { formatCount, formatRating, formatShortDate } from "@/lib/format";
 import { calculateProfileCompletion } from "@/lib/provider-dashboard";
@@ -65,17 +64,20 @@ const activityMeta: Record<
 
 export default async function PainelHomePage() {
   const user = await requireUser(["prestador"]);
-  const username = user.username;
-  const providerUserId = username ? await getProviderUserId(username) : undefined;
-  const details = username ? await getProviderProfileDetails(username) : undefined;
+  const [details, notifications] = await Promise.all([
+    user.username ? getProviderProfileDetails(user.username) : Promise.resolve(undefined),
+    listNotifications(user.id),
+  ]);
 
-  if (!username || !providerUserId || !details) return null;
+  if (!details) return null;
 
-  const stats = await getProviderStats(providerUserId);
-  const quotes = await listQuotesForProvider(providerUserId);
-  const services = await listServices(username);
-  const portfolio = await listPortfolio(providerUserId);
-  const activity = (await listNotifications(user.id)).slice(0, 5);
+  const [stats, quotes, services, portfolio] = await Promise.all([
+    getProviderStats(details.userId),
+    listQuotesForProvider(details.userId),
+    listServicesForProvider(details.userId),
+    listPortfolio(details.userId),
+  ]);
+  const activity = notifications.slice(0, 5);
   const recentQuotes = [...quotes].reverse().slice(0, 3);
   const openQuotes = quotes.filter((quote) => quote.status === "aberto").length;
   const completion = calculateProfileCompletion({
@@ -122,7 +124,7 @@ export default async function PainelHomePage() {
     { href: "/painel/orcamentos", label: "Ver orçamentos", icon: Inbox },
     { href: "/painel/contratos", label: "Gerenciar contratos", icon: FileCheck2 },
     {
-      href: `/prestador/${username}`,
+      href: `/prestador/${details.username}`,
       label: "Ver perfil público",
       icon: ArrowUpRight,
     },

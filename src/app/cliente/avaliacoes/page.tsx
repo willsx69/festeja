@@ -20,8 +20,10 @@ export const metadata: Metadata = {
 
 export default async function ClienteAvaliacoesPage() {
   const user = await requireUser(["cliente"], "/cliente/avaliacoes");
-  const pending = await listReviewableContractsForClient(user.id);
-  const reviews = await listReviewsByClient(user.id);
+  const [pending, reviews] = await Promise.all([
+    listReviewableContractsForClient(user.id),
+    listReviewsByClient(user.id),
+  ]);
 
   return (
     <Container className="py-8 sm:py-10">

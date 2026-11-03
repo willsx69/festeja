@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Image from "next/image";
 import { CircleAlert, Trash2, Upload } from "lucide-react";
 import { removeAvatarAction, updateAvatarAction } from "@/actions/account";
 import { ProviderAvatar } from "@/components/provider/provider-avatar";
@@ -50,10 +51,13 @@ export function AvatarCard({ currentAvatar, userName }: AvatarCardProps) {
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         {avatar ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={avatar}
             alt={`Foto de ${userName}`}
+            width={80}
+            height={80}
+            sizes="80px"
+            unoptimized
             className="size-20 shrink-0 rounded-2xl border border-line object-cover"
           />
         ) : (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import Image from "next/image";
 import { CircleAlert } from "lucide-react";
 
 type ImageUploadFieldProps = {
@@ -63,8 +64,15 @@ export function ImageUploadField({
         </p>
       ) : null}
       {url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={url} alt="Pré-visualização" className="mt-2 h-24 rounded-xl border border-line object-cover" />
+        <Image
+          src={url}
+          alt="Pré-visualização"
+          width={160}
+          height={96}
+          sizes="160px"
+          unoptimized
+          className="mt-2 h-24 w-40 rounded-xl border border-line object-cover"
+        />
       ) : null}
     </div>
   );

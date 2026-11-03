@@ -51,7 +51,7 @@ export function ProviderCta() {
             </ul>
 
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <ButtonLink href="/cadastro/prestador" variant="accent" size="lg">
+              <ButtonLink href="/cadastro?tipo=prestador" variant="accent" size="lg">
                 Criar perfil grátis
               </ButtonLink>
               <ButtonLink href="#como-funciona" variant="secondary" size="lg" className="border-white/30 bg-transparent text-white hover:border-white/60 hover:bg-white/10">

@@ -1,8 +1,6 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { cache } from "react";
 import {
   getAllProviders as queryAllProviders,
-  getFeaturedProviders as queryFeaturedProviders,
   getProviderByUsername,
 } from "@/lib/db";
 import type { Provider } from "@/types";
@@ -23,12 +21,7 @@ export function resolveProviderAvatar(
   if (avatar) return { avatar, portraitIllustrative: false };
 
   const portrait = featuredPortraits[id];
-  if (!portrait) return {};
-
-  const portraitPath = join(process.cwd(), "public", portrait.slice(1));
-  return existsSync(portraitPath)
-    ? { avatar: portrait, portraitIllustrative: true }
-    : {};
+  return portrait ? { avatar: portrait, portraitIllustrative: true } : {};
 }
 
 function withPortrait(provider: Provider): Provider {
@@ -38,15 +31,15 @@ function withPortrait(provider: Provider): Provider {
   };
 }
 
-export async function getAllProviders(): Promise<Provider[]> {
+export const getAllProviders = cache(async (): Promise<Provider[]> => {
   return (await queryAllProviders()).map(withPortrait);
-}
+});
 
-export async function getFeaturedProviders(): Promise<Provider[]> {
-  return (await queryFeaturedProviders()).map(withPortrait);
-}
+export const getFeaturedProviders = cache(async (): Promise<Provider[]> => {
+  return (await getAllProviders()).filter((provider) => provider.featured);
+});
 
-export async function getProvider(id: string): Promise<Provider | undefined> {
+export const getProvider = cache(async (id: string): Promise<Provider | undefined> => {
   const provider = await getProviderByUsername(id);
   return provider ? withPortrait(provider) : undefined;
-}
+});

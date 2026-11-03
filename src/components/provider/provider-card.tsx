@@ -158,6 +158,7 @@ export function ProviderCard({
 
             <Link
               href={`/prestador/${provider.id}`}
+              prefetch={false}
               className="inline-flex shrink-0 items-center gap-1 rounded-md pb-0.5 text-sm font-semibold text-brand transition-colors hover:text-brand-strong focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-ring/60"
             >
               Ver perfil
@@ -170,6 +171,7 @@ export function ProviderCard({
 
           <ButtonLink
             href={`/prestador/${provider.id}?aba=orcamento`}
+            prefetch={false}
             variant="secondary"
             size="md"
             className="mt-3 w-full border-brand/25 text-brand hover:border-brand hover:bg-brand hover:text-white"

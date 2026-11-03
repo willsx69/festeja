@@ -17,7 +17,7 @@ const columns = [
   {
     title: "Profissionais",
     links: [
-      { label: "Criar perfil grátis", href: "/cadastro/prestador" },
+      { label: "Criar perfil grátis", href: "/cadastro?tipo=prestador" },
       { label: "Entrar no painel", href: "/painel" },
       { label: "Vantagens", href: "/#para-prestadores" },
     ],
@@ -57,7 +57,11 @@ export function Footer() {
               <ul className="mt-5 space-y-3">
                 {column.links.map((link) => (
                   <li key={link.label}>
-                    <Link href={link.href} className="text-sm text-white/60 transition-colors hover:text-yellow">
+                    <Link
+                      href={link.href}
+                      prefetch={false}
+                      className="text-sm text-white/60 transition-colors hover:text-yellow"
+                    >
                       {link.label}
                     </Link>
                   </li>

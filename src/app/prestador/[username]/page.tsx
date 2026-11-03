@@ -25,13 +25,11 @@ import { getCategory } from "@/data/categories";
 import { getProvider } from "@/data/providers";
 import { getCurrentUser } from "@/lib/auth";
 import {
-  canReviewContract,
   getProviderProfile,
   getProviderProfileDetails,
   getProviderStats,
-  getProviderUserId,
   isFavorite,
-  listContractsForClient,
+  listReviewableContractsForClient,
 } from "@/lib/db";
 import { formatCount, formatRating } from "@/lib/format";
 import { hasAvailabilityDetail } from "@/lib/profile-display";
@@ -110,13 +108,15 @@ async function ProfileContent({
 
   await io();
 
-  const provider = await getProvider(username);
-  const profile = await getProviderProfile(username);
+  const [provider, profile, details, user] = await Promise.all([
+    getProvider(username),
+    getProviderProfile(username),
+    getProviderProfileDetails(username),
+    getCurrentUser(),
+  ]);
   if (!provider || !profile) notFound();
 
-  const details = await getProviderProfileDetails(username);
   const category = getCategory(provider.category);
-  const user = await getCurrentUser();
   const loggedIn = Boolean(user);
   const isOwner = Boolean(user && (user.username === username || user.role === "admin"));
   const showClientActions = !user || user.role === "cliente";
@@ -125,13 +125,20 @@ async function ProfileContent({
   );
   const ownerHref = user?.role === "admin" ? "/admin" : "/painel/perfil";
   const ownerLabel = user?.role === "admin" ? "Abrir painel" : "Editar perfil";
-  const providerUserId = await getProviderUserId(username);
-  const favorited =
+  const providerUserId = details?.userId;
+  const [favorited, stats, reviewableContracts] = await Promise.all([
     user?.role === "cliente" && providerUserId
-      ? await isFavorite(user.id, providerUserId)
-      : false;
-  const stats =
-    isOwner && providerUserId ? await getProviderStats(providerUserId) : null;
+      ? isFavorite(user.id, providerUserId)
+      : Promise.resolve(false),
+    isOwner && providerUserId
+      ? getProviderStats(providerUserId)
+      : Promise.resolve(null),
+    user?.role === "cliente" && tab === "avaliacoes"
+      ? listReviewableContractsForClient(user.id).then((contracts) =>
+          contracts.filter((contract) => contract.providerUsername === username),
+        )
+      : Promise.resolve([] as Contract[]),
+  ]);
   const responseTime = hasAvailabilityDetail(profile.availability.responseTime)
     ? profile.availability.responseTime
     : null;
@@ -141,20 +148,6 @@ async function ProfileContent({
     servicos: profile.services.length,
     avaliacoes: provider.reviews,
   };
-
-  const reviewableContracts: Contract[] = [];
-  if (user?.role === "cliente") {
-    const contracts = await listContractsForClient(user.id);
-    for (const contract of contracts) {
-      if (
-        contract.providerUsername === username &&
-        contract.status === "concluido" &&
-        (await canReviewContract(contract.id, user.id)).ok
-      ) {
-        reviewableContracts.push(contract);
-      }
-    }
-  }
 
   return (
     <>

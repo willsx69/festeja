@@ -123,7 +123,7 @@ export function ProviderHero({
                   fill
                   sizes="(max-width: 1152px) 100vw, 1152px"
                   className="object-cover"
-                  priority
+                  preload
                 />
                 <div
                   aria-hidden="true"

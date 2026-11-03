@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createSession, deleteSession, getSessionUser } from "@/lib/db";
@@ -18,11 +19,11 @@ export async function getSessionToken(): Promise<string | undefined> {
   return store.get(SESSION_COOKIE)?.value;
 }
 
-export async function getCurrentUser(): Promise<SessionUser | undefined> {
+export const getCurrentUser = cache(async (): Promise<SessionUser | undefined> => {
   const token = await getSessionToken();
   if (!token) return undefined;
   return getSessionUser(sha256(token));
-}
+});
 
 export async function getCurrentUserFromToken(
   token: string | undefined,

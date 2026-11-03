@@ -30,6 +30,7 @@ export function CategoryCard({ category, count }: { category: Category; count: n
   return (
     <Link
       href={`/buscar?categoria=${category.id}`}
+      prefetch={false}
       aria-label={`Ver profissionais de ${category.name}`}
       className="group block h-full cursor-pointer rounded-[1.25rem] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-ring/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
     >

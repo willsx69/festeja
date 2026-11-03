@@ -1,14 +1,14 @@
 import { ServicesManager } from "@/components/painel/services-manager";
 import { PainelPageHeader } from "@/components/painel/painel-page-header";
 import { requireUser } from "@/lib/auth";
-import { getProviderUserId, listServices } from "@/lib/db";
+import { getProviderProfileDetails, listServicesForProvider } from "@/lib/db";
 
 export default async function PainelServicosPage() {
   const user = await requireUser(["prestador"]);
-  const providerUserId = user.username
-    ? await getProviderUserId(user.username)
+  const details = user.username
+    ? await getProviderProfileDetails(user.username)
     : undefined;
-  const services = providerUserId ? await listServices(user.username ?? "") : [];
+  const services = details ? await listServicesForProvider(details.userId) : [];
 
   return (
     <div className="space-y-6">
