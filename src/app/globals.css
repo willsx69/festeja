@@ -314,3 +314,67 @@
     translate: 0 0;
   }
 }
+
+/* Entrada inicial: roda uma vez no carregamento completo. O body não é
+   remontado entre rotas, então não repete a cada navegação. Só opacidade,
+   para não quebrar elementos position: fixed (navbar, dialogs). */
+@media (prefers-reduced-motion: no-preference) {
+  body {
+    animation: first-paint-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes first-paint-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Navegação entre páginas: a saída é rápida e a entrada chega um pouco
+   depois, para o usuário registrar a nova tela. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(.route-exit) {
+    animation: 140ms ease-in both route-fade-out;
+  }
+
+  ::view-transition-new(.route-enter) {
+    animation: 280ms cubic-bezier(0.22, 1, 0.36, 1) 90ms both route-rise-in;
+  }
+}
+
+/* Mantém a página clicável durante a transição: o overlay não captura cliques. */
+::view-transition {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
+
+@keyframes route-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes route-rise-in {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}

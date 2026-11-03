@@ -136,8 +136,10 @@ export type Conversation = {
   id: string;
   clientUserId: string;
   clientName: string;
+  clientAvatar?: string;
   providerUserId: string;
   providerName: string;
+  providerAvatar?: string;
   providerUsername?: string;
   lastMessage?: string;
   lastMessageAt?: string;

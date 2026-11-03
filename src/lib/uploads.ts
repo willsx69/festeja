@@ -1,8 +1,12 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { UserRole } from "@/types";
+import {
+  MAX_UPLOAD_SIZE,
+  MAX_UPLOAD_SIZE_LABEL,
+} from "@/lib/upload-policy";
 
-export const MAX_UPLOAD_SIZE = 4 * 1024 * 1024;
+export { MAX_UPLOAD_SIZE, MAX_UPLOAD_SIZE_LABEL };
 
 export function uploadsRoot(): string {
   return process.env.FESTEJA_UPLOADS_DIR
@@ -131,7 +135,10 @@ export function validateUpload(input: {
     return { ok: false, error: "O arquivo está vazio." };
   }
   if (input.size > MAX_UPLOAD_SIZE) {
-    return { ok: false, error: "Imagem muito grande (máximo 4MB)." };
+    return {
+      ok: false,
+      error: `Imagem muito grande (máximo ${MAX_UPLOAD_SIZE_LABEL}).`,
+    };
   }
 
   const detected = detectImageType(input.bytes);

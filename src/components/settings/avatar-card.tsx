@@ -6,6 +6,10 @@ import { CircleAlert, Trash2, Upload } from "lucide-react";
 import { removeAvatarAction, updateAvatarAction } from "@/actions/account";
 import { ProviderAvatar } from "@/components/provider/provider-avatar";
 import { Button } from "@/components/ui/button";
+import {
+  MAX_UPLOAD_SIZE_LABEL,
+  PROFILE_IMAGE_ACCEPT,
+} from "@/lib/upload-policy";
 
 type AvatarCardProps = {
   currentAvatar: string | null;
@@ -66,14 +70,14 @@ export function AvatarCard({ currentAvatar, userName }: AvatarCardProps) {
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-ink">{userName}</p>
           <p className="mt-0.5 text-xs text-ink-faint">
-            JPEG, PNG, WebP ou GIF, até 4MB.
+            JPEG, PNG ou WebP, até {MAX_UPLOAD_SIZE_LABEL}.
           </p>
         </div>
       </div>
 
       <input
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
+        accept={PROFILE_IMAGE_ACCEPT}
         disabled={busy}
         onChange={(event) => {
           const file = event.target.files?.[0];

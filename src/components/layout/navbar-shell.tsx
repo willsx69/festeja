@@ -17,6 +17,7 @@ import { Logo } from "@/components/brand/logo";
 import { MobileNavigation } from "@/components/layout/mobile-navigation";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
   SheetContent,
@@ -42,11 +43,52 @@ function isPathActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-type NavbarShellProps = {
-  user: SessionUser | null;
-  unreadMessages?: number;
-  unreadNotifications?: number;
-};
+type NavbarShellProps =
+  | {
+      state: "authenticated";
+      user: SessionUser;
+      unreadMessages?: number;
+      unreadNotifications?: number;
+    }
+  | { state: "unauthenticated" }
+  | { state: "loading" };
+
+function NavbarNavSkeleton() {
+  return (
+    <>
+      <Skeleton className="h-9 w-24 rounded-lg" />
+      <Skeleton className="h-9 w-20 rounded-lg" />
+      <Skeleton className="h-9 w-28 rounded-lg" />
+      <Skeleton className="h-9 w-32 rounded-lg" />
+    </>
+  );
+}
+
+function NavbarAccountSkeleton() {
+  return (
+    <div className="hidden items-center gap-1.5 lg:flex" aria-hidden="true">
+      <Skeleton className="size-9 rounded-xl" />
+      <Skeleton className="size-9 rounded-xl" />
+      <Skeleton className="h-11 w-28 rounded-full" />
+    </div>
+  );
+}
+
+function NavbarMobileSkeleton() {
+  return (
+    <div className="md:hidden" aria-hidden="true">
+      <Skeleton className="h-11 w-24 rounded-full" />
+    </div>
+  );
+}
+
+function NavbarCompactSkeleton() {
+  return (
+    <div className="hidden md:block lg:hidden" aria-hidden="true">
+      <Skeleton className="size-10 rounded-full" />
+    </div>
+  );
+}
 
 function NavLink({
   href,
@@ -175,7 +217,14 @@ function IconLink({
   );
 }
 
-export function NavbarShell({ user, unreadMessages = 0, unreadNotifications = 0 }: NavbarShellProps) {
+export function NavbarShell(props: NavbarShellProps) {
+  const { state } = props;
+  const user = state === "authenticated" ? props.user : null;
+  const unreadMessages =
+    state === "authenticated" ? (props.unreadMessages ?? 0) : 0;
+  const unreadNotifications =
+    state === "authenticated" ? (props.unreadNotifications ?? 0) : 0;
+  const isLoading = state === "loading";
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const close = () => setOpen(false);
@@ -246,7 +295,11 @@ export function NavbarShell({ user, unreadMessages = 0, unreadNotifications = 0 
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-nav-border bg-nav-bg/90 backdrop-blur-xl">
+    <header
+      data-auth-state={state}
+      aria-busy={isLoading || undefined}
+      className="sticky top-0 z-50 border-b border-nav-border bg-nav-bg/90 backdrop-blur-xl"
+    >
       <Container>
         <div className="flex h-16 items-center justify-between gap-4">
           <Link href={pathname === "/" ? "#top" : "/"} onClick={close} aria-label="Festeja — início">
@@ -254,7 +307,9 @@ export function NavbarShell({ user, unreadMessages = 0, unreadNotifications = 0 
           </Link>
 
           <nav aria-label="Principal" className="hidden items-center gap-1 lg:flex">
-            {pathname === "/" && !user
+            {isLoading ? (
+              <NavbarNavSkeleton />
+            ) : pathname === "/" && !user
               ? homeLinks.map((link) => (
                   <a
                     key={link.hash}
@@ -278,67 +333,75 @@ export function NavbarShell({ user, unreadMessages = 0, unreadNotifications = 0 
                 ))}
           </nav>
 
-          {accountArea}
+          {isLoading ? <NavbarAccountSkeleton /> : accountArea}
 
-          <MobileNavigation
-            user={user}
-            unreadMessages={unreadMessages}
-            unreadNotifications={unreadNotifications}
-          />
+          {isLoading ? (
+            <NavbarMobileSkeleton />
+          ) : (
+            <MobileNavigation
+              user={user}
+              unreadMessages={unreadMessages}
+              unreadNotifications={unreadNotifications}
+            />
+          )}
 
-          <div className="hidden md:block lg:hidden">
-            <Sheet open={open} onOpenChange={setOpen}>
-              <SheetTrigger asChild>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="size-10 px-0 lg:hidden"
-                  aria-label="Abrir menu"
-                >
-                  <Menu className="size-5" aria-hidden="true" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="hidden p-6 pt-18 md:flex lg:hidden">
-                <SheetHeader className="sr-only">
-                  <SheetTitle>Menu principal</SheetTitle>
-                  <SheetDescription>Navegue pelo Festeja e acesse sua conta.</SheetDescription>
-                </SheetHeader>
+          {isLoading ? (
+            <NavbarCompactSkeleton />
+          ) : (
+            <div className="hidden md:block lg:hidden">
+              <Sheet open={open} onOpenChange={setOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="size-10 px-0 lg:hidden"
+                    aria-label="Abrir menu"
+                  >
+                    <Menu className="size-5" aria-hidden="true" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="hidden p-6 pt-18 md:flex lg:hidden">
+                  <SheetHeader className="sr-only">
+                    <SheetTitle>Menu principal</SheetTitle>
+                    <SheetDescription>Navegue pelo Festeja e acesse sua conta.</SheetDescription>
+                  </SheetHeader>
 
-                <Link href={pathname === "/" ? "#top" : "/"} onClick={close} className="mb-5 w-fit">
-                  <Logo size="md" />
-                </Link>
+                  <Link href={pathname === "/" ? "#top" : "/"} onClick={close} className="mb-5 w-fit">
+                    <Logo size="md" />
+                  </Link>
 
-                <nav aria-label="Menu móvel" className="flex flex-col gap-1">
-                  {pathname === "/" && !user
-                    ? homeLinks.map((link) => (
-                        <a
-                          key={link.hash}
-                          href={hrefFor(link.hash)}
-                          onClick={close}
-                          className="rounded-xl px-4 py-3 text-base font-semibold text-ink transition-colors hover:bg-brand-soft hover:text-brand"
-                        >
-                          {link.label}
-                        </a>
-                      ))
-                    : user?.role === "admin" ? (
-                        <Suspense fallback={<AdminNavFallback mobile />}>
-                          <AdminNavItems mobile pathname={pathname} onClick={close} />
-                        </Suspense>
-                      ) : roleLinks.map((link) => (
-                        <MobileNavLink
-                          key={link.href}
-                          href={link.href}
-                          label={link.label}
-                          isActive={isPathActive(pathname, link.href)}
-                          onClick={close}
-                        />
-                      ))}
-                </nav>
-                <div className="mt-auto border-t border-line pt-4">{accountAreaMobile}</div>
-              </SheetContent>
-            </Sheet>
-          </div>
+                  <nav aria-label="Menu móvel" className="flex flex-col gap-1">
+                    {pathname === "/" && !user
+                      ? homeLinks.map((link) => (
+                          <a
+                            key={link.hash}
+                            href={hrefFor(link.hash)}
+                            onClick={close}
+                            className="rounded-xl px-4 py-3 text-base font-semibold text-ink transition-colors hover:bg-brand-soft hover:text-brand"
+                          >
+                            {link.label}
+                          </a>
+                        ))
+                      : user?.role === "admin" ? (
+                          <Suspense fallback={<AdminNavFallback mobile />}>
+                            <AdminNavItems mobile pathname={pathname} onClick={close} />
+                          </Suspense>
+                        ) : roleLinks.map((link) => (
+                          <MobileNavLink
+                            key={link.href}
+                            href={link.href}
+                            label={link.label}
+                            isActive={isPathActive(pathname, link.href)}
+                            onClick={close}
+                          />
+                        ))}
+                  </nav>
+                  <div className="mt-auto border-t border-line pt-4">{accountAreaMobile}</div>
+                </SheetContent>
+              </Sheet>
+            </div>
+          )}
         </div>
       </Container>
     </header>

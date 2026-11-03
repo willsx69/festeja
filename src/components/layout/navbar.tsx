@@ -7,15 +7,20 @@ import { countUnreadMessages, countUnreadNotifications } from "@/lib/db";
 async function NavbarSession() {
   await connection();
   const user = await getCurrentUser();
-  let unreadMessages = 0;
-  let unreadNotifications = 0;
-  if (user) {
-    unreadMessages = await countUnreadMessages(user.id);
-    unreadNotifications = await countUnreadNotifications(user.id);
+
+  if (!user) {
+    return <NavbarShell state="unauthenticated" />;
   }
+
+  const [unreadMessages, unreadNotifications] = await Promise.all([
+    user.role === "admin" ? Promise.resolve(0) : countUnreadMessages(user.id),
+    countUnreadNotifications(user.id),
+  ]);
+
   return (
     <NavbarShell
-      user={user ?? null}
+      state="authenticated"
+      user={user}
       unreadMessages={unreadMessages}
       unreadNotifications={unreadNotifications}
     />
@@ -24,7 +29,7 @@ async function NavbarSession() {
 
 export function Navbar() {
   return (
-    <Suspense fallback={<NavbarShell user={null} />}>
+    <Suspense fallback={<NavbarShell state="loading" />}>
       <NavbarSession />
     </Suspense>
   );

@@ -50,7 +50,9 @@ function Test-FestejaProcess {
     return $false
   }
 
-  $isNextStart = $command -match "(?i)next\\dist\\bin\\next.*\bstart\b"
+  $isNextStart =
+    $command -match "(?i)next\\dist\\bin\\next.*\bstart\b" -or
+    $command -match "(?i)next\\dist\\server\\lib\\start-server\.js"
   $isNpmStart = $command -match "(?i)npm.*\bstart:next\b"
 
   return ($isNextStart -or $isNpmStart)
@@ -129,7 +131,7 @@ function Stop-FestejaProcesses {
       continue
     }
     Write-Host "Encerrando processo Festeja PID $($process.ProcessId)..."
-    & taskkill.exe /PID $process.ProcessId /T /F 2>$null | Out-Null
+    & cmd.exe /c "taskkill.exe /PID $($process.ProcessId) /T /F >nul 2>&1" | Out-Null
   }
 
   for ($attempt = 0; $attempt -lt 30; $attempt++) {

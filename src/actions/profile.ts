@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import {
   getCurrentUser,
   getCurrentUserAllowedByEmailPolicy,
@@ -28,6 +28,13 @@ export type ProfileFormState = {
   errors?: Record<string, string>;
   message?: string;
 };
+
+// Fotos aparecem em praticamente todas as telas (navbar, busca, cartões,
+// perfil público, mensagens), então invalidamos o layout raiz inteiro.
+function revalidateProviderSurfaces(username: string) {
+  revalidatePath("/", "layout");
+  revalidatePath(`/prestador/${username}`);
+}
 
 export async function recordProfileViewAction(username: string): Promise<void> {
   const providerUserId = await getProviderUserId(username);
@@ -80,7 +87,6 @@ export async function updateProfileAction(
   const responseTime = String(formData.get("tempo-resposta") ?? "").trim();
   const minimumNotice = String(formData.get("antecedencia") ?? "").trim();
   const availabilityNote = String(formData.get("nota-disponibilidade") ?? "").trim();
-  const cover = String(formData.get("capa") ?? "").trim();
 
   const errors: Record<string, string> = {};
 
@@ -94,9 +100,6 @@ export async function updateProfileAction(
   if (days.length === 0) errors.dias = "Marque ao menos um dia de atendimento.";
   if (!responseTime) errors["tempo-resposta"] = "Informe o tempo médio de resposta.";
   if (!minimumNotice) errors.antecedencia = "Informe a antecedência mínima.";
-  if (cover && !isOwnedUploadPath(cover, user.id)) {
-    errors.geral = "Imagem enviada não pertence à sua conta.";
-  }
 
   if (Object.keys(errors).length > 0 || !neighborhood) return { errors };
 
@@ -115,12 +118,27 @@ export async function updateProfileAction(
     availabilityNote,
   });
 
-  if (cover) {
-    await setProviderCover(providerUserId, cover);
-  }
-
+  revalidateProviderSurfaces(user.username);
   refresh();
   return { message: "Perfil atualizado com sucesso." };
+}
+
+export async function updateCoverAction(url: string | null): Promise<boolean> {
+  const user = await requireUser(["prestador"]);
+  if (!user.username) return false;
+  if (url !== null && !isOwnedUploadPath(url, user.id)) return false;
+
+  const providerUserId = await getProviderUserId(user.username);
+  if (!providerUserId) return false;
+
+  await setProviderCover(providerUserId, url);
+  if (url === null) {
+    // Limpa também a imagem legada, senão os cartões voltariam a mostrá-la.
+    await setProviderImage(providerUserId, null);
+  }
+  revalidateProviderSurfaces(user.username);
+  refresh();
+  return true;
 }
 
 export async function setProfileImageAction(url: string): Promise<boolean> {

@@ -31,7 +31,7 @@ export function calculateProfileCompletion({
       id: "photo",
       label: "Adicionar foto de perfil",
       complete: Boolean(details.avatar),
-      href: "/configuracoes",
+      href: "/painel/perfil",
     },
     {
       id: "cover",

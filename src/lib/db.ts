@@ -883,7 +883,7 @@ function toProvider(row: ProviderRow): Provider {
     id: row.username,
     name: row.name,
     category: row.category as CategoryId,
-    image: row.image ?? undefined,
+    image: row.cover ?? row.image ?? undefined,
     avatar: row.avatar ?? undefined,
     city: row.city,
     state: row.state,
@@ -1221,7 +1221,8 @@ export async function getProviderProfileDetails(
     state: data.state,
     neighborhood: data.neighborhood,
     image: data.image,
-    cover: data.cover ?? null,
+    // Capa atual, com fallback para a imagem legada (mesma regra dos cartões).
+    cover: data.cover ?? data.image ?? null,
     avatar: data.avatar ?? null,
     tags: parseTags(data.tags),
     verified: data.verified === 1,
@@ -2470,7 +2471,9 @@ type ConversationRow = {
   provider_user_id: string;
   created_at: string;
   client_name: string;
+  client_avatar: string | null;
   provider_name: string;
+  provider_avatar: string | null;
   provider_username: string;
   last_message: string | null;
   last_message_at: string | null;
@@ -2480,7 +2483,9 @@ type ConversationRow = {
 
 const conversationSelect = `
      SELECT c.id, c.client_user_id, c.provider_user_id, c.created_at,
-            cu.name AS client_name, pu.name AS provider_name, p.username AS provider_username,
+            cu.name AS client_name, cu.avatar AS client_avatar,
+            pu.name AS provider_name, pu.avatar AS provider_avatar,
+            p.username AS provider_username,
             lm.body AS last_message,
             lm.created_at AS last_message_at,
             lm.sender_user_id AS last_sender_user_id,
@@ -2509,8 +2514,10 @@ function toConversation(conversation: ConversationRow): Conversation {
     id: conversation.id,
     clientUserId: conversation.client_user_id,
     clientName: conversation.client_name,
+    clientAvatar: conversation.client_avatar ?? undefined,
     providerUserId: conversation.provider_user_id,
     providerName: conversation.provider_name,
+    providerAvatar: conversation.provider_avatar ?? undefined,
     providerUsername: conversation.provider_username,
     lastMessage: conversation.last_message ?? undefined,
     lastMessageAt: conversation.last_message_at ?? undefined,

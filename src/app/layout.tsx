@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { RouteTransition } from "@/components/motion/route-transition";
 import { site } from "@/lib/site";
 import "./globals.css";
 
@@ -56,7 +57,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={plusJakarta.variable}
       data-scroll-behavior="smooth"
     >
-      <body className="min-h-dvh antialiased">{children}</body>
+      <body className="min-h-dvh antialiased">
+        <RouteTransition>{children}</RouteTransition>
+      </body>
     </html>
   );
 }

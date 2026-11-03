@@ -4,6 +4,7 @@ import { getCurrentUserAllowedByEmailPolicy } from "@/lib/auth";
 import { enforceRateLimit, retryMessage } from "@/lib/rate-limit";
 import {
   MAX_UPLOAD_SIZE,
+  MAX_UPLOAD_SIZE_LABEL,
   storeUpload,
   validateUpload,
 } from "@/lib/uploads";
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_SIZE) {
     return NextResponse.json(
-      { error: "Imagem muito grande (máximo 4MB)." },
+      { error: `Imagem muito grande (máximo ${MAX_UPLOAD_SIZE_LABEL}).` },
       { status: 413 },
     );
   }

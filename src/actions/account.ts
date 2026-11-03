@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { endSession, requireAccountUser, startSession } from "@/lib/auth";
 import {
@@ -24,6 +24,12 @@ export type AccountFormState = {
   errors?: Record<string, string>;
   message?: string;
 };
+
+// A foto do usuário aparece na navbar, mensagens, cartões e perfil público.
+function revalidateAvatarSurfaces(username?: string) {
+  revalidatePath("/", "layout");
+  if (username) revalidatePath(`/prestador/${username}`);
+}
 
 export async function updateAccountAction(
   _prevState: AccountFormState,
@@ -102,6 +108,7 @@ export async function updateAvatarAction(url: string): Promise<boolean> {
   if (!isOwnedUploadPath(url, user.id)) return false;
 
   await updateUserAvatar(user.id, url);
+  revalidateAvatarSurfaces(user.username);
   refresh();
   return true;
 }
@@ -109,6 +116,7 @@ export async function updateAvatarAction(url: string): Promise<boolean> {
 export async function removeAvatarAction(): Promise<void> {
   const user = await requireAccountUser();
   await updateUserAvatar(user.id, null);
+  revalidateAvatarSurfaces(user.username);
   refresh();
 }
 

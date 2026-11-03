@@ -148,6 +148,16 @@ export function MessagesPage({ userRole, userId, selectedId }: MessagesPageProps
   }
 
   const active = conversations.find((conversation) => conversation.id === activeId) ?? null;
+  const activeOtherName = active
+    ? userId === active.clientUserId
+      ? active.providerName
+      : active.clientName
+    : "";
+  const activeOtherAvatar = active
+    ? userId === active.clientUserId
+      ? active.providerAvatar
+      : active.clientAvatar
+    : undefined;
 
   return (
     <Container className="py-8 sm:py-10">
@@ -189,6 +199,10 @@ export function MessagesPage({ userRole, userId, selectedId }: MessagesPageProps
                     userId === conversation.clientUserId
                       ? conversation.providerName
                       : conversation.clientName;
+                  const otherAvatar =
+                    userId === conversation.clientUserId
+                      ? conversation.providerAvatar
+                      : conversation.clientAvatar;
                   return (
                     <li key={conversation.id}>
                       <button
@@ -199,7 +213,12 @@ export function MessagesPage({ userRole, userId, selectedId }: MessagesPageProps
                           activeId === conversation.id && "bg-brand-soft/60",
                         )}
                       >
-                        <ProviderAvatar name={otherName} size="md" className="size-11 text-sm" />
+                        <ProviderAvatar
+                          name={otherName}
+                          image={otherAvatar}
+                          size="md"
+                          className="size-11 text-sm"
+                        />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-2">
                             <p className="truncate text-sm font-semibold text-ink">{otherName}</p>
@@ -241,9 +260,15 @@ export function MessagesPage({ userRole, userId, selectedId }: MessagesPageProps
                 >
                   <ArrowLeft className="size-4" aria-hidden="true" />
                 </button>
+                <ProviderAvatar
+                  name={activeOtherName}
+                  image={activeOtherAvatar}
+                  size="md"
+                  className="size-10 text-sm"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-ink">
-                    {userId === active.clientUserId ? active.providerName : active.clientName}
+                    {activeOtherName}
                   </p>
                   {userId === active.clientUserId && active.providerUsername ? (
                     <Link

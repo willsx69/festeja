@@ -4,7 +4,6 @@ import { useActionState } from "react";
 import { CircleAlert } from "lucide-react";
 import { updateProfileAction, type ProfileFormState } from "@/actions/profile";
 import { ManausNeighborhoodField } from "@/components/location/manaus-neighborhood-field";
-import { ImageUploadField } from "@/components/painel/image-upload-field";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { categories } from "@/data/categories";
@@ -216,12 +215,6 @@ export function ProfileForm({ details }: { details: ProviderProfileDetails }) {
             className={cn(inputClass, okBorder)}
           />
         </div>
-
-        <ImageUploadField
-          name="capa"
-          label="Imagem de capa do perfil"
-          hint="JPEG, PNG, WebP ou GIF, até 4MB. Para trocar a imagem de capa, envie uma nova."
-        />
 
         <Button type="submit" size="lg" disabled={pending}>
           {pending ? "Salvando..." : "Salvar alterações"}
